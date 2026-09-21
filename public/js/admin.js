@@ -53,10 +53,12 @@
   function initials(name) { return P.esc ? name : name; }
 
   function renderUsers() {
-    return Promise.all([api('/api/users?role=FACULTY'), api('/api/users?role=STUDENT')]).then(function (r) {
+    var fetches = isSuper ? [api('/api/users?role=FACULTY'), api('/api/users?role=STUDENT'), api('/api/users?role=ADMIN'), api('/api/users?role=SUPER_ADMIN')] : [api('/api/users?role=FACULTY'), api('/api/users?role=STUDENT')];
+    return Promise.all(fetches).then(function (r) {
       var teachers = r[0].users, students = r[1].users;
-      var html = '<div class="section-title">Users</div><div class="section-sub">Teacher and student accounts across the academy.</div>';
-      html += '<div class="course-tabs" id="usersTabs"><button class="course-tab active" data-users-tab="teachers">Teachers</button><button class="course-tab" data-users-tab="students">Students</button></div>';
+      var admins = isSuper ? r[2].users.concat(r[3].users) : [];
+      var html = '<div class="section-title">Users</div><div class="section-sub">Manage accounts across the academy.</div>';
+      html += '<div class="course-tabs" id="usersTabs"><button class="course-tab active" data-users-tab="teachers">Teachers</button><button class="course-tab" data-users-tab="students">Students</button>' + (isSuper ? '<button class="course-tab" data-users-tab="admins">Administrators</button>' : '') + '</div>';
       html += '<div class="tab-panel active" data-users-panel="teachers"><div class="card"><div class="card-head"><h3>Teacher accounts</h3>' + (isSuper ? '<button class="btn-primary" id="addTeacherBtn">+ Add teacher</button>' : '<span class="cell-sub">Only a Super Admin can add or edit teacher accounts.</span>') + '</div>';
       html += '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Contact</th><th>Teaching</th><th>Status</th><th style="text-align:right;"></th></tr></thead><tbody>';
       teachers.forEach(function (t) {
@@ -78,6 +80,20 @@
           '<td style="white-space:nowrap; text-align:right;"><button class="btn-secondary btn-small" data-edit-user="' + s.id + '" data-role="STUDENT">Edit</button> <button class="btn-danger-text" data-toggle-user="' + s.id + '">' + (s.status === 'ACTIVE' ? 'Deactivate' : 'Reactivate') + '</button></td></tr>';
       });
       html += '</tbody></table></div></div></div>';
+
+      if (isSuper) {
+        html += '<div class="tab-panel" data-users-panel="admins"><div class="card"><div class="card-head"><h3>Administrator accounts</h3><button class="btn-primary" id="addAdminBtn">+ Add admin</button></div>';
+        html += '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Contact</th><th>Role</th><th>Status</th><th style="text-align:right;"></th></tr></thead><tbody>';
+        admins.forEach(function (a) {
+          html += '<tr><td><div class="cell-student"><div class="cell-avatar">' + esc(a.initials) + '</div>' + esc(a.name) + '</div></td>' +
+            '<td>' + esc(a.email) + '<div class="cell-sub">' + esc(a.phone || '') + '</div></td>' +
+            '<td>' + (a.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin') + '</td>' +
+            '<td><span class="pill ' + (a.status === 'ACTIVE' ? 'pill-active' : 'pill-inactive') + '">' + a.status + '</span></td>' +
+            '<td style="white-space:nowrap; text-align:right;"><button class="btn-secondary btn-small" data-edit-user="' + a.id + '" data-role="' + a.role + '">Edit</button> <button class="btn-danger-text" data-toggle-user="' + a.id + '">' + (a.status === 'ACTIVE' ? 'Deactivate' : 'Reactivate') + '</button></td></tr>';
+        });
+        html += '</tbody></table></div></div></div>';
+      }
+
       document.getElementById('view-users').innerHTML = html;
 
       var tabs = document.getElementById('usersTabs');
@@ -91,18 +107,21 @@
       });
       if (isSuper) document.getElementById('addTeacherBtn').addEventListener('click', function () { openUserModal('FACULTY'); });
       document.getElementById('addStudentBtn').addEventListener('click', function () { openUserModal('STUDENT'); });
+      if (isSuper) document.getElementById('addAdminBtn').addEventListener('click', function () { openUserModal('ADMIN'); });
     });
   }
 
   var userOverlay = document.createElement('div'); userOverlay.className = 'modal-overlay'; userOverlay.id = 'userOverlay'; document.body.appendChild(userOverlay);
   function openUserModal(role, editing) {
-    userOverlay.innerHTML = '<div class="modal wide"><h3>' + (editing ? 'Edit ' : 'Add ') + (role === 'FACULTY' ? 'teacher' : 'student') + '</h3>' +
+    var roleLabel = role === 'FACULTY' ? 'teacher' : (role === 'STUDENT' ? 'student' : 'administrator');
+    userOverlay.innerHTML = '<div class="modal wide"><h3>' + (editing ? 'Edit ' : 'Add ') + roleLabel + '</h3>' +
       '<p class="modal-sub">' + (editing ? 'Update their account details.' : 'They will receive an email to complete setup.') + '</p>' +
       '<div class="settings-grid">' +
       '<div class="field"><label>Name</label><input type="text" id="uName" value="' + esc(editing ? editing.name : '') + '"></div>' +
       '<div class="field"><label>Email address</label><input type="email" id="uEmail" value="' + esc(editing ? editing.email : '') + '"></div>' +
       '<div class="field"><label>Phone number</label><input type="text" id="uPhone" value="' + esc(editing ? editing.phone || '' : '') + '"></div>' +
       (role === 'FACULTY' ? '<div class="field"><label>Job title</label><input type="text" id="uTitle" value="' + esc(editing ? editing.title || '' : '') + '"></div>' : '') +
+      ((role === 'ADMIN' || role === 'SUPER_ADMIN') ? '<div class="field"><label>Administrator Role</label><select id="uRole"><option value="ADMIN"' + (role === 'ADMIN' ? ' selected' : '') + '>Admin</option><option value="SUPER_ADMIN"' + (role === 'SUPER_ADMIN' ? ' selected' : '') + '>Super Admin</option></select></div>' : '') +
       '</div>' +
       '<div class="modal-error" id="uError">Please fill in a name and email.</div>' +
       '<div class="modal-actions" style="margin-top:24px; padding-top:16px; border-top:1px solid var(--line);"><button type="button" class="btn-secondary" id="uCancel">Cancel</button><button type="button" class="btn-primary" id="uSave">Save account</button></div></div>';
@@ -112,7 +131,9 @@
       var name = document.getElementById('uName').value.trim();
       var email = document.getElementById('uEmail').value.trim();
       if (!name || !email) { document.getElementById('uError').classList.add('show'); return; }
-      var payload = { name: name, email: email, phone: document.getElementById('uPhone').value.trim(), role: role };
+      var uRoleEl = document.getElementById('uRole');
+      var finalRole = uRoleEl ? uRoleEl.value : role;
+      var payload = { name: name, email: email, phone: document.getElementById('uPhone').value.trim(), role: finalRole };
       var titleEl = document.getElementById('uTitle');
       if (titleEl) payload.title = titleEl.value.trim();
       var req = editing ? api('/api/users/' + editing.id, { method: 'PUT', body: payload }) : api('/api/users', { method: 'POST', body: payload });
@@ -339,17 +360,17 @@
     if (!isSuper) { document.getElementById('view-settings').innerHTML = '<div class="section-title">Settings</div><p class="section-sub">Only a Super Admin can change academy settings.</p>'; return Promise.resolve(); }
     return api('/api/settings').then(function (d) {
       var s = d.settings;
-      var html = '<div class="section-title">Settings</div><div class="section-sub">Academy-wide configuration.</div><form id="settingsForm">' +
-        '<div class="card"><div class="card-head"><h3>Academic calendar</h3></div><div class="settings-grid cols-3">' +
+      var html = '<div class="section-title">Settings & Configuration</div><div class="section-sub">Manage global academy policies and operational parameters.</div><form id="settingsForm">' +
+        '<div class="card"><div class="card-head"><h3>📅 Academic Calendar</h3></div><div class="settings-grid cols-3" style="border-top:1px solid var(--line); padding-top:18px;">' +
         '<div class="field"><label>Term / cohort name</label><input type="text" id="setTermName" value="' + esc(s.termName || '') + '"></div>' +
         '<div class="field"><label>Term start</label><input type="date" id="setTermStart" value="' + esc(s.termStart || '') + '"></div>' +
         '<div class="field"><label>Term end</label><input type="date" id="setTermEnd" value="' + esc(s.termEnd || '') + '"></div></div></div>' +
-        '<div class="card"><div class="card-head"><h3>Grading policy</h3></div><div class="settings-grid">' +
-        '<div class="field"><label>Module unlock threshold (%)</label><input type="number" id="setPassMark" min="0" max="100" value="' + esc(s.passMark || 70) + '"></div></div></div>' +
-        '<div class="card"><div class="card-head"><h3>Quiz rules</h3></div><div class="settings-grid">' +
-        '<div class="field"><label>Time limit (minutes)</label><input type="number" id="setQuizTime" min="1" value="' + esc(s.quizTime || 30) + '"></div>' +
+        '<div class="card"><div class="card-head"><h3>🎓 Learning & Progress Policy</h3></div><div class="settings-grid" style="border-top:1px solid var(--line); padding-top:18px;">' +
+        '<div class="field"><label>Module unlock threshold (%)</label><input type="number" id="setPassMark" min="0" max="100" value="' + esc(s.passMark || 70) + '"><div class="composer-hint">Score required to unlock subsequent modules in a course.</div></div></div></div>' +
+        '<div class="card"><div class="card-head"><h3>⏱️ Standard Quiz Rules</h3></div><div class="settings-grid cols-2" style="border-top:1px solid var(--line); padding-top:18px;">' +
+        '<div class="field"><label>Default time limit (minutes)</label><input type="number" id="setQuizTime" min="1" value="' + esc(s.quizTime || 30) + '"></div>' +
         '<div class="field"><label>Attempts allowed per quiz</label><input type="number" id="setQuizAttempts" min="1" value="' + esc(s.quizAttempts || 3) + '"></div></div></div>' +
-        '<div class="settings-actions"><button type="submit" class="btn-primary">Save changes</button></div></form>';
+        '<div class="settings-actions"><button type="submit" class="btn-primary" style="padding:10px 24px; font-size:0.9rem;">Save all changes</button></div></form>';
       document.getElementById('view-settings').innerHTML = html;
       document.getElementById('settingsForm').addEventListener('submit', function (e) {
         e.preventDefault();

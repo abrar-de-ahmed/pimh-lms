@@ -105,7 +105,8 @@
         html += '<div class="card"><div class="card-head"><h3>Quick Study Resources</h3><a href="#" data-view="materials">View all</a></div>';
         html += '<div class="quick-res-list">';
         d.recentMaterials.forEach(function (m) {
-          var linkHtml = (!m.url || m.url === '#') ? '<span class="quick-res-name" style="color:var(--slate);">' + esc(m.title) + '</span>' : '<a class="quick-res-name" href="' + esc(m.url) + '" target="_blank" rel="noopener">' + esc(m.title) + '</a>';
+          var href = m.type === 'file' ? '/api/materials/' + m.id + '/download' : m.url;
+          var linkHtml = (!href || href === '#') ? '<span class="quick-res-name" style="color:var(--slate);">' + esc(m.title) + '</span>' : '<a class="quick-res-name" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(m.title) + '</a>';
           html += '<div class="quick-res-item"><div class="quick-res-icon">' + (m.type === 'link' ? '🔗' : '📄') + '</div>' +
             '<div class="quick-res-info">' + linkHtml + '<div class="quick-res-sub">' + esc(m.courseName) + '</div></div></div>';
         });
@@ -374,10 +375,11 @@
             html += '<div class="card materials-week-panel' + (j === 0 ? ' active' : '') + '" data-mat-week-panel="m' + m.id + '"><div class="materials-list">';
             if (!m.materials || m.materials.length === 0) html += '<div class="materials-empty">No materials shared yet for this module.</div>';
             (m.materials || []).forEach(function (mat) {
-              var isPlaceholder = !mat.url || mat.url === '#';
+              var href = mat.type === 'file' ? '/api/materials/' + mat.id + '/download' : mat.url;
+              var isPlaceholder = !href || href === '#';
               var linkHtml = isPlaceholder
                 ? '<span class="mi-name mi-name-disabled" title="No file has been uploaded for this item yet">' + esc(mat.title) + '</span>'
-                : '<div class="mi-name"><a href="' + esc(mat.url) + '" target="_blank" rel="noopener">' + esc(mat.title) + '</a></div>';
+                : '<div class="mi-name"><a href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(mat.title) + '</a></div>';
               html += '<div class="materials-item"><div class="materials-icon">' + (mat.type === 'link' ? '🔗' : '📄') + '</div>' +
                 '<div class="materials-item-body">' + linkHtml +
                 '<div class="mi-meta">' + (mat.type === 'link' ? 'Link' : 'File') + (isPlaceholder ? ' · not uploaded yet' : ' · shared ' + timeAgo(mat.createdAt)) + '</div></div></div>';

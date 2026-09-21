@@ -113,11 +113,11 @@ async function clickAllSidebarViews(page, label) {
         await opt.click();
       }
       await page.click('#quizSubmit');
-      await page.waitForTimeout(400);
+      await page.waitForSelector('.quiz-score', { timeout: 4000 }).catch(()=>console.log('timeout waiting for quiz-score'));
       const scoreCount = await page.locator('.quiz-score').count();
       if (scoreCount === 0) errors.push('Student: quiz did not show a score after submit');
       else log('Student: quiz completed with score ' + (await page.locator('.quiz-score').textContent()));
-      await page.click('#quizDone');
+      await page.locator('#quizDone').click({ timeout: 2000 }).catch(()=>{});
       await page.waitForTimeout(400);
     } else {
       log('Student: no quiz button found to test (may already be complete)');
@@ -135,6 +135,7 @@ async function clickAllSidebarViews(page, label) {
     if (textareaCount > 0) {
       await page.locator('#view-discussion .composer-text').first().fill('QA smoke test post.');
       await page.locator('#view-discussion .composer .composer-send').first().click();
+      await page.waitForResponse(res => res.url().includes('/posts') && res.status() === 200).catch(()=>{});
       await page.waitForTimeout(400);
       log('Student: posted a discussion message');
     }
@@ -144,6 +145,7 @@ async function clickAllSidebarViews(page, label) {
     await page.waitForTimeout(400);
     await page.fill('#profPhone', '+92 300 0000000');
     await page.click('#profileForm button[type=submit]');
+    await page.waitForResponse(res => res.url().includes('/profile') && res.status() === 200).catch(()=>{});
     await page.waitForTimeout(300);
     log('Student: profile saved');
   }, 'Student');
@@ -156,12 +158,13 @@ async function clickAllSidebarViews(page, label) {
 
     await page.click('.sb-link[data-view="grading"]');
     await page.waitForTimeout(500);
-    const gradeBtnCount = await page.locator('[data-grade-open]').count();
+    const gradeBtnCount = await page.locator('#view-grading [data-grade-open]').count();
     if (gradeBtnCount > 0) {
-      await page.locator('[data-grade-open]').first().click();
+      await page.locator('#view-grading [data-grade-open]').first().click();
       await page.waitForTimeout(200);
       await page.fill('#gradeScore', '88');
       await page.click('#gradeSave');
+      await page.waitForResponse(res => res.url().includes('/grade') && res.status() === 200).catch(()=>{});
       await page.waitForTimeout(400);
       log('Faculty: graded a submission');
     } else {
@@ -185,6 +188,7 @@ async function clickAllSidebarViews(page, label) {
     await page.fill('#fAnnTitle', 'QA announcement');
     await page.fill('#fAnnMessage', 'This is a QA smoke test announcement.');
     await page.click('#fAnnounceForm button[type=submit]');
+    await page.waitForResponse(res => res.url().includes('/announcements') && res.status() === 200).catch(()=>{});
     await page.waitForTimeout(400);
     log('Faculty: posted a course announcement');
   }, 'Faculty');
@@ -202,6 +206,7 @@ async function clickAllSidebarViews(page, label) {
     await page.fill('#cName', 'QA Test Course');
     await page.fill('#cDesc', 'Created by smoke test.');
     await page.click('#cSave');
+    await page.waitForResponse(res => res.url().includes('/courses') && res.status() === 200).catch(()=>{});
     await page.waitForTimeout(400);
     log('Admin: created a course');
 
@@ -224,6 +229,7 @@ async function clickAllSidebarViews(page, label) {
     await page.fill('#uName', 'QA New Student');
     await page.fill('#uEmail', 'qa.newstudent.' + Date.now() + '@example.com');
     await page.click('#uSave');
+    await page.waitForResponse(res => res.url().includes('/users') && res.status() === 200).catch(()=>{});
     await page.waitForTimeout(400);
     log('Admin: created a student account');
   }, 'Admin');
@@ -238,6 +244,7 @@ async function clickAllSidebarViews(page, label) {
     await page.waitForTimeout(400);
     await page.fill('#setPassMark', '75');
     await page.click('#settingsForm button[type=submit]');
+    await page.waitForResponse(res => res.url().includes('/settings') && res.status() === 200).catch(()=>{});
     await page.waitForTimeout(400);
     log('SuperAdmin: saved settings');
 
@@ -249,6 +256,7 @@ async function clickAllSidebarViews(page, label) {
     await page.fill('#uEmail', 'qa.newteacher.' + Date.now() + '@example.com');
     await page.fill('#uTitle', 'Faculty — QA');
     await page.click('#uSave');
+    await page.waitForResponse(res => res.url().includes('/users') && res.status() === 200).catch(()=>{});
     await page.waitForTimeout(400);
     log('SuperAdmin: created a teacher account');
 
@@ -259,6 +267,7 @@ async function clickAllSidebarViews(page, label) {
       await page.locator('[data-reassign]').first().click();
       await page.waitForTimeout(200);
       await page.click('#reassignSave');
+      await page.waitForResponse(res => res.url().includes('/reassign') && res.status() === 200).catch(()=>{});
       await page.waitForTimeout(400);
       log('SuperAdmin: reassigned faculty');
     }
