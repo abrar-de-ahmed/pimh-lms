@@ -5,6 +5,7 @@ const google = require('../lib/google');
 const perm = require('../lib/permissions');
 const q = require('../lib/queries');
 const { readJson, sendJson } = require('../lib/http-helpers');
+const s3 = require('../lib/s3');
 
 function requireAuth(req, res) {
   const user = auth.currentUser(req);
@@ -103,8 +104,17 @@ module.exports = function register(router) {
     const dataUrl = body.dataUrl || '';
     if (!dataUrl.startsWith('data:image/')) return sendJson(res, 400, { error: 'Please choose a JPEG or PNG image.' });
     if (dataUrl.length > 900000) return sendJson(res, 400, { error: 'Image is too large. Please choose a smaller file.' });
-    db.prepare('UPDATE users SET avatar_url = ? WHERE id = ?').run(dataUrl, user.id);
-    sendJson(res, 200, { ok: true, avatarUrl: dataUrl });
+    
+    let finalUrl = dataUrl;
+    try {
+      finalUrl = await s3.uploadBase64ToS3(dataUrl, 'avatars');
+    } catch (err) {
+      console.error('S3 Upload Error:', err);
+      return sendJson(res, 500, { error: 'Failed to upload avatar to cloud storage.' });
+    }
+
+    db.prepare('UPDATE users SET avatar_url = ? WHERE id = ?').run(finalUrl, user.id);
+    sendJson(res, 200, { ok: true, avatarUrl: finalUrl });
   });
 
   // ---------------- LEADS (public landing form) ----------------
@@ -211,6 +221,18 @@ module.exports = function register(router) {
     sendJson(res, 200, { courses: out });
   });
 
+  router.get('/api/catalog', async (req, res) => {
+    const user = requireRole(req, res, ['STUDENT']); if (!user) return;
+    const enrolledIds = db.prepare(`SELECT course_id FROM enrollments WHERE student_id=? AND status IN ('Active', 'Pending')`).all(user.id).map(r => r.course_id);
+    let allCourses = db.prepare(`SELECT * FROM courses WHERE status='Active' ORDER BY name`).all();
+    if (enrolledIds.length) {
+      const placeholders = enrolledIds.map(() => '?').join(',');
+      allCourses = db.prepare(`SELECT * FROM courses WHERE status='Active' AND id NOT IN (${placeholders}) ORDER BY name`).all(...enrolledIds);
+    }
+    const out = allCourses.map(c => ({ id: c.id, name: c.name, description: c.description }));
+    sendJson(res, 200, { catalog: out });
+  });
+
   router.post('/api/courses', async (req, res) => {
     const user = requireRole(req, res, ['SUPER_ADMIN', 'ADMIN']); if (!user) return;
     const body = await readJson(req);
@@ -280,6 +302,77 @@ module.exports = function register(router) {
     sendJson(res, 200, { roster: out });
   });
 
+  router.get('/api/enrollments/pending', async (req, res) => {
+    const user = requireRole(req, res, ['SUPER_ADMIN', 'ADMIN']); if (!user) return;
+    const rows = db.prepare(`SELECT e.*, c.name as course_name, u.name as student_name 
+                             FROM enrollments e 
+                             JOIN courses c ON c.id=e.course_id 
+                             JOIN users u ON u.id=e.student_id 
+                             WHERE e.status='Pending' ORDER BY e.created_at DESC`).all();
+    sendJson(res, 200, { pending: rows });
+  });
+
+  router.post('/api/enrollments/request', async (req, res) => {
+    const user = requireRole(req, res, ['STUDENT']); if (!user) return;
+    const body = await readJson(req);
+    const courseId = Number(body.courseId);
+    const dataUrl = body.receiptDataUrl;
+    if (!courseId || !dataUrl) return sendJson(res, 400, { error: 'Course and payment receipt are required.' });
+    
+    // Upload receipt to S3
+    let receiptUrl = '';
+    try {
+      receiptUrl = await s3.uploadBase64ToS3(dataUrl, 'receipts');
+    } catch (err) {
+      console.error('S3 Upload Error:', err);
+      return sendJson(res, 500, { error: 'Failed to upload receipt.' });
+    }
+
+    const existing = db.prepare('SELECT * FROM enrollments WHERE student_id=? AND course_id=?').get(user.id, courseId);
+    if (existing) {
+      if (existing.status === 'Active') return sendJson(res, 400, { error: 'Already enrolled.' });
+      if (existing.status === 'Pending') return sendJson(res, 400, { error: 'Request is already pending.' });
+      db.prepare(`UPDATE enrollments SET status='Pending', payment_receipt_url=? WHERE id=?`).run(receiptUrl, existing.id);
+    } else {
+      db.prepare(`INSERT INTO enrollments (student_id, course_id, status, payment_receipt_url) VALUES (?,?,'Pending',?)`).run(user.id, courseId, receiptUrl);
+    }
+    logActivity(user.id, `Requested enrollment for course ID ${courseId}`);
+    sendJson(res, 200, { ok: true });
+  });
+
+  router.patch('/api/enrollments/:id/approve', async (req, res) => {
+    const user = requireRole(req, res, ['SUPER_ADMIN', 'ADMIN']); if (!user) return;
+    const row = db.prepare('SELECT * FROM enrollments WHERE id=?').get(req.params.id);
+    if (!row) return sendJson(res, 404, { error: 'Not found' });
+    db.prepare(`UPDATE enrollments SET status='Active' WHERE id=?`).run(row.id);
+    
+    const courseId = row.course_id;
+    const studentId = row.student_id;
+    const course = db.prepare('SELECT * FROM courses WHERE id=?').get(courseId);
+    
+    // seed module_progress rows
+    const mods = q.courseModules(courseId);
+    mods.forEach((m) => {
+      const has = db.prepare('SELECT 1 FROM module_progress WHERE student_id=? AND module_id=?').get(studentId, m.id);
+      if (!has) db.prepare('INSERT INTO module_progress (student_id, module_id, pct, time_spent_min, status) VALUES (?,?,0,0,\'locked\')').run(studentId, m.id);
+    });
+
+    logActivity(user.id, `Approved enrollment for student ID ${studentId} in ${course.name}`);
+    notify(studentId, `Your enrollment request for ${course.name} has been approved.`);
+    sendJson(res, 200, { ok: true });
+  });
+
+  router.delete('/api/enrollments/:id/reject', async (req, res) => {
+    const user = requireRole(req, res, ['SUPER_ADMIN', 'ADMIN']); if (!user) return;
+    const row = db.prepare('SELECT * FROM enrollments WHERE id=?').get(req.params.id);
+    if (!row) return sendJson(res, 404, { error: 'Not found' });
+    const course = db.prepare('SELECT * FROM courses WHERE id=?').get(row.course_id);
+    db.prepare(`DELETE FROM enrollments WHERE id=?`).run(row.id);
+    logActivity(user.id, `Rejected enrollment for student ID ${row.student_id}`);
+    notify(row.student_id, `Your enrollment request for ${course.name} was not approved. Please check your payment details.`);
+    sendJson(res, 200, { ok: true });
+  });
+
   router.post('/api/enrollments', async (req, res) => {
     const user = requireRole(req, res, ['SUPER_ADMIN', 'ADMIN']); if (!user) return;
     const body = await readJson(req);
@@ -342,6 +435,13 @@ module.exports = function register(router) {
       const e = db.prepare(`SELECT * FROM enrollments WHERE student_id=? AND course_id=? AND status='Active'`).get(user.id, c.course_id);
       if (!e) return sendJson(res, 403, { error: 'Not enrolled.' });
     }
+
+    // Redirect to S3 if it is a cloud URL
+    if (m.file_data.startsWith('http://') || m.file_data.startsWith('https://')) {
+      res.writeHead(302, { 'Location': m.file_data });
+      return res.end();
+    }
+
     const parts = m.file_data.split(',');
     if (parts.length < 2) return sendJson(res, 500, { error: 'Invalid file data' });
     const mime = parts[0];
@@ -376,7 +476,17 @@ module.exports = function register(router) {
     if (type === 'file' && !fileData) return sendJson(res, 400, { error: 'Please provide a file.' });
     if (fileData && fileData.length > 15000000) return sendJson(res, 400, { error: 'File is too large.' });
     
-    const result = db.prepare('INSERT INTO materials (module_id,title,type,url,file_name,file_data) VALUES (?,?,?,?,?,?)').run(m.id, title, type, url, fileName, fileData);
+    let finalDataToStore = fileData;
+    if (type === 'file' && fileData && fileData.startsWith('data:')) {
+      try {
+        finalDataToStore = await s3.uploadBase64ToS3(fileData, 'materials');
+      } catch (err) {
+        console.error('S3 Upload Error:', err);
+        return sendJson(res, 500, { error: 'Failed to upload material to cloud storage.' });
+      }
+    }
+    
+    const result = db.prepare('INSERT INTO materials (module_id,title,type,url,file_name,file_data) VALUES (?,?,?,?,?,?)').run(m.id, title, type, url, fileName, finalDataToStore);
     sendJson(res, 200, { material: { id: result.lastInsertRowid, title, type, url, fileName } });
   });
 
@@ -419,6 +529,12 @@ module.exports = function register(router) {
       const e = db.prepare(`SELECT * FROM enrollments WHERE student_id=? AND course_id=? AND status='Active'`).get(user.id, m.course_id);
       if (!e) return sendJson(res, 403, { error: 'Not enrolled.' });
     }
+
+    if (p.file_data.startsWith('http://') || p.file_data.startsWith('https://')) {
+      res.writeHead(302, { 'Location': p.file_data });
+      return res.end();
+    }
+
     const parts = p.file_data.split(',');
     if (parts.length < 2) return sendJson(res, 500, { error: 'Invalid file data' });
     const mime = parts[0];
@@ -448,9 +564,19 @@ module.exports = function register(router) {
     const text = (body.text || '').trim();
     const fileName = body.fileName || null;
     const fileMime = body.fileMime || null;
-    const fileData = body.fileData || null;
+    let fileData = body.fileData || null;
     if (!text && !fileName) return sendJson(res, 400, { error: 'Write something or attach a file before posting.' });
     if (fileData && fileData.length > 15000000) return sendJson(res, 400, { error: 'File is too large. Maximum size is 10 MB.' });
+    
+    if (fileData && fileData.startsWith('data:')) {
+      try {
+        fileData = await s3.uploadBase64ToS3(fileData, 'discussions');
+      } catch (err) {
+        console.error('S3 Upload Error:', err);
+        return sendJson(res, 500, { error: 'Failed to upload discussion attachment to cloud storage.' });
+      }
+    }
+    
     const result = db.prepare('INSERT INTO discussion_posts (module_id, author_id, text, file_name, file_mime, file_data) VALUES (?,?,?,?,?,?)').run(m.id, user.id, text || '', fileName, fileMime, fileData);
     sendJson(res, 200, { post: { id: result.lastInsertRowid } });
   });

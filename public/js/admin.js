@@ -196,9 +196,22 @@
   });
 
   function renderEnrollment() {
-    return Promise.all([api('/api/courses'), api('/api/users?role=STUDENT')]).then(function (r) {
-      var courses = r[0].courses, students = r[1].users;
+    return Promise.all([api('/api/courses'), api('/api/users?role=STUDENT'), api('/api/enrollments/pending')]).then(function (r) {
+      var courses = r[0].courses, students = r[1].users, pending = r[2].pending;
       var html = '<div class="section-title">Enrollment</div><div class="section-sub">Manage which students are enrolled in each course.</div>';
+      
+      if (pending && pending.length > 0) {
+        html += '<div class="card" style="border:1px solid var(--fire);"><div class="card-head" style="color:var(--fire); margin-bottom:12px;"><h3>Action Required: Pending Requests</h3></div>';
+        html += '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Course</th><th>Payment Receipt</th><th style="text-align:right;">Actions</th></tr></thead><tbody>';
+        pending.forEach(function (p) {
+          var receiptHtml = p.payment_receipt_url ? '<a href="' + esc(p.payment_receipt_url) + '" target="_blank" rel="noopener">&#128206; View Receipt</a>' : '<span style="color:var(--slate);">None</span>';
+          html += '<tr><td><strong>' + esc(p.student_name) + '</strong></td><td>' + esc(p.course_name) + '</td><td>' + receiptHtml + '</td>' +
+            '<td style="text-align:right;"><button class="btn-primary btn-small" data-approve-enroll="' + p.id + '" style="margin-right:8px;">Approve</button>' +
+            '<button class="btn-secondary btn-small" data-reject-enroll="' + p.id + '">Reject</button></td></tr>';
+        });
+        html += '</tbody></table></div></div><br>';
+      }
+
       html += '<div class="course-tabs" id="enrollTabs">' + courses.map(function (c, i) { return '<button class="course-tab' + (i === 0 ? ' active' : '') + '" data-enroll-course="c' + c.id + '">' + esc(c.name) + '</button>'; }).join('') + '</div>';
       courses.forEach(function (c, i) {
         html += '<div class="tab-panel' + (i === 0 ? ' active' : '') + '" data-enroll-panel="c' + c.id + '"><div class="card"><div class="table-wrap"><table><thead><tr><th>Student</th><th>Email</th><th style="text-align:right;">Enrolled</th></tr></thead><tbody>';
@@ -210,14 +223,16 @@
       });
       document.getElementById('view-enrollment').innerHTML = html;
       var tabs = document.getElementById('enrollTabs');
-      tabs.querySelectorAll('.course-tab').forEach(function (t) {
-        t.addEventListener('click', function () {
-          var key = t.getAttribute('data-enroll-course');
-          tabs.querySelectorAll('.course-tab').forEach(function (x) { x.classList.remove('active'); });
-          t.classList.add('active');
-          document.querySelectorAll('[data-enroll-panel]').forEach(function (p) { p.classList.toggle('active', p.getAttribute('data-enroll-panel') === key); });
+      if (tabs) {
+        tabs.querySelectorAll('.course-tab').forEach(function (t) {
+          t.addEventListener('click', function () {
+            var key = t.getAttribute('data-enroll-course');
+            tabs.querySelectorAll('.course-tab').forEach(function (x) { x.classList.remove('active'); });
+            t.classList.add('active');
+            document.querySelectorAll('[data-enroll-panel]').forEach(function (p) { p.classList.toggle('active', p.getAttribute('data-enroll-panel') === key); });
+          });
         });
-      });
+      }
       courses.forEach(function (c) {
         api('/api/courses/' + c.id + '/roster').then(function (r2) {
           var ids = r2.roster.map(function (s) { return String(s.id); });
@@ -234,6 +249,25 @@
     var studentId = cb.getAttribute('data-student'), courseId = cb.getAttribute('data-course');
     if (cb.checked) api('/api/enrollments', { method: 'POST', body: { studentId: studentId, courseId: courseId } }).then(function () { showToast('Enrolled.'); });
     else api('/api/enrollments?studentId=' + studentId + '&courseId=' + courseId, { method: 'DELETE' }).then(function () { showToast('Removed.'); });
+  });
+
+  document.body.addEventListener('click', function(e) {
+    var approveBtn = e.target.closest('[data-approve-enroll]');
+    if (approveBtn) {
+      api('/api/enrollments/' + approveBtn.getAttribute('data-approve-enroll') + '/approve', { method: 'PATCH' }).then(function() {
+        showToast('Enrollment approved.'); renderEnrollment();
+      });
+      return;
+    }
+    var rejectBtn = e.target.closest('[data-reject-enroll]');
+    if (rejectBtn) {
+      if (confirm('Are you sure you want to reject this enrollment request?')) {
+        api('/api/enrollments/' + rejectBtn.getAttribute('data-reject-enroll') + '/reject', { method: 'DELETE' }).then(function() {
+          showToast('Request rejected.'); renderEnrollment();
+        });
+      }
+      return;
+    }
   });
 
   function renderFaculty() {

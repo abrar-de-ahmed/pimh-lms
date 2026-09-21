@@ -6,7 +6,7 @@
   var me = boot.user;
 
   var titles = {
-    dashboard: 'Dashboard', courses: 'My Courses', materials: 'Materials', schedule: 'Class Schedule',
+    dashboard: 'Dashboard', catalog: 'Course Catalog', courses: 'My Courses', materials: 'Materials', schedule: 'Class Schedule',
     grades: 'Grades', discussion: 'Discussion', announcements: 'Announcements', notifications: 'Notifications',
     certificates: 'Certificates', profile: 'Profile',
   };
@@ -206,6 +206,7 @@
   window.PIMH.studentInit = function () {
     P.initViewSwitching(titles, function (name) {
       if (name === 'dashboard') renderDashboard();
+      if (name === 'catalog') renderCatalog();
       if (name === 'courses') renderCoursesFull();
       if (name === 'materials') renderMaterials();
       if (name === 'schedule') renderSchedule();
@@ -256,6 +257,98 @@
         html += '</div></div>';
       });
       document.getElementById('view-courses').innerHTML = html;
+    });
+  }
+
+  // ---------------- COURSE CATALOG ----------------
+  function renderCatalog() {
+    return api('/api/catalog').then(function (d) {
+      var html = '<h2 class="section-title">Course Catalog</h2><p class="section-sub">Browse available courses and request enrollment.</p>';
+      if (d.catalog.length === 0) {
+        html += '<div class="card"><p style="color:var(--slate); margin:0;">No new courses available to enroll in right now.</p></div>';
+      } else {
+        html += '<div class="catalog-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:20px; align-items:stretch;">';
+        d.catalog.forEach(function (c) {
+          html += '<div class="card" style="display:flex; flex-direction:column;">' +
+            '<div style="flex-grow:1;"><h3 style="margin-top:0;">' + esc(c.name) + '</h3>' +
+            '<p style="color:var(--slate); font-size:0.95rem; line-height:1.4;">' + esc(c.description || 'A comprehensive training module.') + '</p></div>' +
+            '<div style="margin-top:20px;"><button type="button" class="btn-primary" style="width:100%;" data-request-enroll="' + c.id + '" data-course-title="' + esc(c.name) + '">Request Enrollment</button></div>' +
+            '</div>';
+        });
+        html += '</div>';
+      }
+      document.getElementById('view-catalog').innerHTML = html;
+    });
+  }
+
+  document.body.addEventListener('click', function(e) {
+    var reqBtn = e.target.closest('[data-request-enroll]');
+    if (reqBtn) {
+      openEnrollmentModal(reqBtn.getAttribute('data-request-enroll'), reqBtn.getAttribute('data-course-title'));
+    }
+  });
+
+  function openEnrollmentModal(courseId, courseTitle) {
+    var overlay = document.getElementById('enrollOverlay') || (function () {
+      var o = document.createElement('div');
+      o.className = 'modal-overlay';
+      o.id = 'enrollOverlay';
+      document.body.appendChild(o);
+      return o;
+    })();
+    overlay.innerHTML = '<div class="modal wide"><h3>Enroll in ' + esc(courseTitle) + '</h3>' +
+      '<p class="modal-sub">To secure your seat, please upload a clear image or PDF of your fee payment receipt.</p>' +
+      '<div class="settings-grid" style="grid-template-columns:1fr; margin-top:20px;">' +
+      '<div class="field">' +
+      '<label>Payment Receipt <span style="color:var(--fire);">*</span></label>' +
+      '<div class="assign-attach-row">' +
+      '<label class="assign-attach-btn" for="enrollReceiptInput" style="cursor:pointer; display:inline-block;">&#128206; Choose File (Max 10MB)</label>' +
+      '<input type="file" id="enrollReceiptInput" accept=".pdf,.jpg,.jpeg,.png" style="display:none;">' +
+      '<span id="enrollReceiptChip" style="display:none; margin-left:10px;" class="attach-chip"></span>' +
+      '</div></div></div>' +
+      '<div class="modal-actions" style="margin-top:24px;">' +
+      '<button type="button" class="btn-secondary" id="enrollCancel">Cancel</button>' +
+      '<button type="button" class="btn-primary" id="enrollSubmit">Submit Request</button></div></div>';
+    overlay.classList.add('show');
+
+    var fileInput = document.getElementById('enrollReceiptInput');
+    var fileChip = document.getElementById('enrollReceiptChip');
+    var fileDataUrl = null;
+
+    fileInput.addEventListener('change', function() {
+      var f = fileInput.files[0];
+      if (!f) {
+        fileChip.style.display = 'none'; fileDataUrl = null; return;
+      }
+      if (f.size > 10 * 1024 * 1024) { showToast('File too large (Max 10MB)', true); fileInput.value = ''; return; }
+      var reader = new FileReader();
+      reader.onload = function() {
+        fileDataUrl = reader.result;
+        fileChip.style.display = 'inline-flex';
+        fileChip.innerHTML = '&#128206; ' + esc(f.name) + ' <button type="button" class="attach-chip-remove" title="Remove">&#10005;</button>';
+        fileChip.querySelector('.attach-chip-remove').addEventListener('click', function() {
+          fileInput.value = ''; fileDataUrl = null; fileChip.style.display = 'none';
+        });
+      };
+      reader.readAsDataURL(f);
+    });
+
+    document.getElementById('enrollCancel').addEventListener('click', function() { overlay.classList.remove('show'); });
+    document.getElementById('enrollSubmit').addEventListener('click', function() {
+      if (!fileDataUrl) return showToast('You must upload a payment receipt to request enrollment.', true);
+      document.getElementById('enrollSubmit').disabled = true;
+      document.getElementById('enrollSubmit').textContent = 'Uploading...';
+      api('/api/enrollments/request', { method: 'POST', body: { courseId: courseId, receiptDataUrl: fileDataUrl } })
+        .then(function() {
+          overlay.classList.remove('show');
+          showToast('Enrollment request submitted! Waiting for admin approval.');
+          renderCatalog(); // Refresh catalog to hide the course we just applied for
+        })
+        .catch(function(err) {
+          showToast(err.message, true);
+          document.getElementById('enrollSubmit').disabled = false;
+          document.getElementById('enrollSubmit').textContent = 'Submit Request';
+        });
     });
   }
 

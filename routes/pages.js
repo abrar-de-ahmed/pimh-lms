@@ -12,6 +12,7 @@ function readFile(rel) {
 
 const STUDENT_LINKS = [
   sidebarLink('dashboard', 'Dashboard', 'dashboard'),
+  sidebarLink('catalog', 'Course Catalog', 'catalog'),
   sidebarLink('courses', 'My Courses', 'courses'),
   sidebarLink('materials', 'Materials', 'materials'),
   sidebarLink('schedule', 'Schedule', 'schedule'),
