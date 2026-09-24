@@ -5,7 +5,9 @@ const google = require('../lib/google');
 const perm = require('../lib/permissions');
 const q = require('../lib/queries');
 const { readJson, sendJson } = require('../lib/http-helpers');
-const s3 = require('../lib/s3');
+const storage = require('../lib/storage');
+const mailer = require('../lib/mailer');
+const crypto = require('crypto');
 
 function requireAuth(req, res) {
   const user = auth.currentUser(req);
@@ -47,12 +49,21 @@ module.exports = function register(router) {
     const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
     if (existing) return sendJson(res, 409, { error: 'An account with this email already exists.' });
     const hash = auth.hashPassword(password);
-    const result = db.prepare(`INSERT INTO users (name,email,password_hash,role,status) VALUES (?,?,?,'STUDENT','ACTIVE')`).run(name, email, hash);
+    const token = crypto.randomBytes(16).toString('hex');
+    const result = db.prepare(`INSERT INTO users (name,email,password_hash,role,status,verification_token) VALUES (?,?,?,'STUDENT','ACTIVE',?)`).run(name, email, hash, token);
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid);
-    const session = auth.createSession(user.id);
-    auth.setCookie(res, 'pimh_session', session.token, { maxAge: 30 * 24 * 60 * 60 });
-    logActivity(user.id, `New student account registered: ${name}`);
-    sendJson(res, 200, { user: q.publicUser(user), redirect: auth.ROLE_HOME[user.role] });
+    logActivity(user.id, `New student account registered (pending verification): ${name}`);
+    
+    // Send Verification Email
+    const verifyUrl = `${req.headers.origin || 'http://localhost:3000'}/verify-email?token=${token}`;
+    mailer.sendEmail({
+      to: email,
+      subject: 'Verify your PIMH Academy Account',
+      html: `<h1>Welcome, ${name}!</h1><p>Please click the link below to verify your email address and activate your account:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`
+    }).catch(e => console.error(e));
+
+    // Do NOT log them in immediately. Tell the frontend to show a success message.
+    sendJson(res, 200, { ok: true, requireVerification: true, message: 'Please check your email to verify your account.' });
   });
 
   router.post('/api/auth/login', async (req, res) => {
@@ -82,6 +93,45 @@ module.exports = function register(router) {
     sendJson(res, 200, { configured: google.isConfigured() });
   });
 
+  router.post('/api/auth/resend-verification', async (req, res) => {
+    const user = auth.currentUser(req);
+    if (!user) return sendJson(res, 401, { error: 'Not logged in' });
+    if (user.email_verified === 1) return sendJson(res, 400, { error: 'Already verified' });
+    
+    let token = user.verification_token;
+    if (!token) {
+      token = crypto.randomBytes(16).toString('hex');
+      db.prepare('UPDATE users SET verification_token=? WHERE id=?').run(token, user.id);
+    }
+    const verifyUrl = `${req.headers.origin || 'http://localhost:3000'}/verify-email?token=${token}`;
+    mailer.sendEmail({
+      to: user.email,
+      subject: 'Verify your PIMH Academy Account',
+      html: `<h1>Welcome, ${user.name}!</h1><p>Please click the link below to verify your email address:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`
+    }).catch(e => console.error(e));
+    
+    sendJson(res, 200, { ok: true });
+  });
+
+  router.post('/api/auth/setup-teacher', async (req, res) => {
+    const body = await readJson(req);
+    const token = (body.token || '').trim();
+    const password = body.password || '';
+    if (!token) return sendJson(res, 400, { error: 'Missing token' });
+    if (password.length < 8) return sendJson(res, 400, { error: 'Password must be at least 8 characters.' });
+    
+    const user = db.prepare('SELECT * FROM users WHERE verification_token=?').get(token);
+    if (!user) return sendJson(res, 400, { error: 'Invalid or expired token.' });
+    
+    const hash = auth.hashPassword(password);
+    db.prepare('UPDATE users SET email_verified=1, verification_token=NULL, password_hash=? WHERE id=?').run(hash, user.id);
+    logActivity(user.id, `Set up instructor password and verified email`);
+    
+    const session = auth.createSession(user.id);
+    auth.setCookie(res, 'pimh_session', session.token, { maxAge: 30 * 24 * 60 * 60 });
+    sendJson(res, 200, { ok: true, redirect: auth.ROLE_HOME[user.role] });
+  });
+
   // ---------------- ME / PROFILE ----------------
   router.get('/api/me', async (req, res) => {
     const user = auth.currentUser(req);
@@ -107,7 +157,7 @@ module.exports = function register(router) {
     
     let finalUrl = dataUrl;
     try {
-      finalUrl = await s3.uploadBase64ToS3(dataUrl, 'avatars');
+      finalUrl = await storage.uploadBase64(dataUrl, 'avatars');
     } catch (err) {
       console.error('S3 Upload Error:', err);
       return sendJson(res, 500, { error: 'Failed to upload avatar to cloud storage.' });
@@ -161,10 +211,22 @@ module.exports = function register(router) {
     if (existing) return sendJson(res, 409, { error: 'An account with this email already exists.' });
     const tempPassword = Math.random().toString(36).slice(2, 10);
     const hash = auth.hashPassword(tempPassword);
-    const result = db.prepare(`INSERT INTO users (name,email,password_hash,role,phone,title,status) VALUES (?,?,?,?,?,?,'ACTIVE')`)
-      .run(name, email, hash, role, body.phone || '', body.title || body.role || '');
+    const token = crypto.randomBytes(16).toString('hex');
+    const result = db.prepare(`INSERT INTO users (name,email,password_hash,role,phone,title,status,verification_token) VALUES (?,?,?,?,?,?,'ACTIVE',?)`)
+      .run(name, email, hash, role, body.phone || '', body.title || body.role || '', token);
+    
+    const userRow = db.prepare('SELECT * FROM users WHERE id=?').get(result.lastInsertRowid);
     logActivity(user.id, `Added ${role.toLowerCase()} account: ${name}`);
-    sendJson(res, 200, { user: q.publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(result.lastInsertRowid)), tempPassword });
+    
+    // Send Teacher Welcome Setup Email
+    const verifyUrl = `${req.headers.origin || 'http://localhost:3000'}/setup-account?token=${token}`;
+    mailer.sendEmail({
+      to: email,
+      subject: `Welcome to PIMH Academy, ${name}`,
+      html: `<h1>Welcome to the Faculty!</h1><p>An administrator has created a <b>${role}</b> account for you.</p><p>Please click the link below to verify your email and set your private password:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`
+    }).catch(e => console.error(e));
+
+    sendJson(res, 200, { user: q.publicUser(userRow), message: 'Account created. Email invitation sent with setup link.' });
   });
 
   router.put('/api/users/:id', async (req, res) => {
@@ -322,7 +384,7 @@ module.exports = function register(router) {
     // Upload receipt to S3
     let receiptUrl = '';
     try {
-      receiptUrl = await s3.uploadBase64ToS3(dataUrl, 'receipts');
+      receiptUrl = await storage.uploadBase64(dataUrl, 'receipts');
     } catch (err) {
       console.error('S3 Upload Error:', err);
       return sendJson(res, 500, { error: 'Failed to upload receipt.' });
@@ -436,8 +498,8 @@ module.exports = function register(router) {
       if (!e) return sendJson(res, 403, { error: 'Not enrolled.' });
     }
 
-    // Redirect to S3 if it is a cloud URL
-    if (m.file_data.startsWith('http://') || m.file_data.startsWith('https://')) {
+    // Redirect to remote or local URL
+    if (m.file_data.startsWith('http://') || m.file_data.startsWith('https://') || m.file_data.startsWith('/api/downloads/')) {
       res.writeHead(302, { 'Location': m.file_data });
       return res.end();
     }
@@ -479,7 +541,7 @@ module.exports = function register(router) {
     let finalDataToStore = fileData;
     if (type === 'file' && fileData && fileData.startsWith('data:')) {
       try {
-        finalDataToStore = await s3.uploadBase64ToS3(fileData, 'materials');
+        finalDataToStore = await storage.uploadBase64(fileData, 'materials');
       } catch (err) {
         console.error('S3 Upload Error:', err);
         return sendJson(res, 500, { error: 'Failed to upload material to cloud storage.' });
@@ -530,7 +592,7 @@ module.exports = function register(router) {
       if (!e) return sendJson(res, 403, { error: 'Not enrolled.' });
     }
 
-    if (p.file_data.startsWith('http://') || p.file_data.startsWith('https://')) {
+    if (p.file_data.startsWith('http://') || p.file_data.startsWith('https://') || p.file_data.startsWith('/api/downloads/')) {
       res.writeHead(302, { 'Location': p.file_data });
       return res.end();
     }
@@ -570,7 +632,7 @@ module.exports = function register(router) {
     
     if (fileData && fileData.startsWith('data:')) {
       try {
-        fileData = await s3.uploadBase64ToS3(fileData, 'discussions');
+        fileData = await storage.uploadBase64(fileData, 'discussions');
       } catch (err) {
         console.error('S3 Upload Error:', err);
         return sendJson(res, 500, { error: 'Failed to upload discussion attachment to cloud storage.' });
@@ -713,7 +775,7 @@ module.exports = function register(router) {
               submissionId: s.id, assessmentId: a.id, assessmentTitle: a.title, type: a.type,
               courseId: c.id, courseName: c.name, studentId: s.student_id, studentName: s.student_name,
               studentInitials: q.initials(s.student_name), score: s.score, status: s.status,
-              submittedAt: s.submitted_at, feedback: s.feedback,
+              submittedAt: s.submitted_at, feedback: s.feedback, contentText: s.content_text,
             });
           });
         });
@@ -1032,7 +1094,7 @@ module.exports = function register(router) {
       courses: courses.map((c) => ({ id: c.id, name: c.name, avgProgress: q.courseAvgProgressAll(c.id), enrolledCount: q.enrolledStudentIds(c.id).length })),
       recentAnnouncement: recentAnnouncement ? { title: recentAnnouncement.title, text: recentAnnouncement.message, courseName: recentAnnouncement.course_name } : null,
       recentSubmissions: topSubmissions.map(s => ({
-        submissionId: s.id, assessmentTitle: s.assessment_title, courseName: s.course_name, studentName: s.student_name, submittedAt: s.submitted_at
+        submissionId: s.id, assessmentTitle: s.assessment_title, courseName: s.course_name, studentName: s.student_name, submittedAt: s.submitted_at, contentText: s.content_text
       })),
       upcomingSessions: topSessions.map(s => ({
         id: s.id, title: s.title, date: s.event_date, time: s.event_time, courseName: s.course_name
@@ -1105,5 +1167,44 @@ module.exports = function register(router) {
       console.error(e);
       redirect(res, '/login?error=google');
     }
+  });
+
+  // ---------------- LOCAL DOWNLOADS ----------------
+  router.get('/api/downloads/:filename', async (req, res) => {
+    const filename = req.params.filename;
+    
+    // Check if it's public (like avatars) or requires auth (materials, posts)
+    if (!filename.startsWith('avatars_')) {
+      const user = requireAuth(req, res);
+      if (!user) return;
+    }
+    
+    // Prevent path traversal
+    if (!filename || filename.includes('/') || filename.includes('..') || filename.includes('\\')) {
+       return sendJson(res, 400, { error: 'Invalid filename' });
+    }
+    
+    const fs = require('fs');
+    const path = require('path');
+    const filePath = path.join(__dirname, '..', 'data', 'uploads', filename);
+    
+    if (!fs.existsSync(filePath)) {
+       return sendJson(res, 404, { error: 'File not found on server disk.' });
+    }
+    
+    let ct = 'application/octet-stream';
+    if (filename.endsWith('.pdf')) ct = 'application/pdf';
+    else if (filename.endsWith('.png')) ct = 'image/png';
+    else if (filename.endsWith('.jpg') || filename.endsWith('.jpeg')) ct = 'image/jpeg';
+    else if (filename.endsWith('.docx')) ct = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    else if (filename.endsWith('.pptx')) ct = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    else if (filename.endsWith('.txt')) ct = 'text/plain';
+    
+    res.writeHead(200, {
+      'Content-Type': ct,
+      'Content-Disposition': `inline; filename="${filename}"`
+    });
+    const stream = fs.createReadStream(filePath);
+    stream.pipe(res);
   });
 };

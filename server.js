@@ -58,6 +58,34 @@ const server = http.createServer(async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+
+// Daily Cron Job for Upcoming Task Due Notifications
+setInterval(() => {
+  try {
+    const db = require('./lib/db');
+    const mailer = require('./lib/mailer');
+    const upcoming = db.prepare(`SELECT * FROM assessments WHERE due_date IS NOT NULL AND due_date >= datetime('now') AND due_date <= datetime('now', '+1 day')`).all();
+    
+    upcoming.forEach(a => {
+      const course = db.prepare(`SELECT c.id, c.name FROM modules m JOIN courses c ON c.id = m.course_id WHERE m.id = ?`).get(a.module_id);
+      if (!course) return;
+      
+      const enrolled = db.prepare(`SELECT u.id, u.email, u.name as student_name FROM enrollments e JOIN users u ON u.id = e.student_id WHERE e.course_id = ? AND e.status = 'Active'`).all(course.id);
+      enrolled.forEach(student => {
+        const sub = db.prepare(`SELECT id FROM submissions WHERE assessment_id = ? AND student_id = ?`).get(a.id, student.id);
+        if (!sub) {
+          console.log(`[CRON] Overdue notification queue: ${student.email} for ${a.title}`);
+          mailer.sendEmail({
+            to: student.email,
+            subject: `Action Required: Upcoming Deadline for ${course.name}`,
+            html: `<p>Hello ${student.student_name},</p><p>This is a reminder that you have an upcoming ${a.type} (<b>${a.title}</b>) due within the next 24 hours.</p><p>Please log in to the PIMH Academy dashboard to complete it!</p>`
+          }).catch(console.error);
+        }
+      });
+    });
+  } catch (err) { console.error('[CRON ERROR]', err); }
+}, 24 * 60 * 60 * 1000); // 24 hours
+
 server.listen(PORT, () => {
   console.log(`PIMH Academy LMS running at http://localhost:${PORT}`);
 });

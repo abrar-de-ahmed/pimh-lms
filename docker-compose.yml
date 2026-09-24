@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  pimh-lms:
+    build: .
+    container_name: pimh
+    restart: always
+    volumes:
+      - ./data:/usr/src/app/data
+      - ./.env:/usr/src/app/.env
+    networks:
+      - traefik_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pimhlms.rule=Host(`academy.craftedmindss.com`)"
+      - "traefik.http.routers.pimhlms.entrypoints=websecure"
+      - "traefik.http.routers.pimhlms.tls.certresolver=mytlschallenge"
+      - "traefik.http.services.pimhlms.loadbalancer.server.port=3000"
+
+networks:
+  traefik_net:
+    external: true
+    name: n8n-compose_default

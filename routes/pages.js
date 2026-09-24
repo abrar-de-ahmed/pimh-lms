@@ -83,9 +83,66 @@ module.exports = function register(router) {
   function guard(req, res, roles) {
     const user = auth.currentUser(req);
     if (!user) { redirect(res, '/login'); return null; }
+    
+    // Email Verification Blocker 
+    if (user.email_verified === 0 && user.role !== 'SUPER_ADMIN') {
+      redirect(res, '/verify-pending');
+      return null;
+    }
+    
     if (!roles.includes(user.role)) { redirect(res, auth.ROLE_HOME[user.role]); return null; }
     return user;
   }
+
+  router.get('/verify-pending', async (req, res) => {
+    const user = auth.currentUser(req);
+    if (!user) return redirect(res, '/login');
+    if (user.email_verified === 1) return redirect(res, auth.ROLE_HOME[user.role]);
+    
+    sendHtml(res, 200, page({
+      title: 'Verify Your Email — PIMH Academy',
+      headExtra: '<link rel="stylesheet" href="/css/auth.css">',
+      bodyHtml: readFile('verify-pending.html'),
+      bootJson: {},
+    }));
+  });
+
+  router.get('/verify-email', async (req, res) => {
+    const url = new URL(req.url, 'http://x');
+    const token = url.searchParams.get('token');
+    if (!token) return redirect(res, '/login');
+    
+    const db = require('../lib/db');
+    const user = db.prepare('SELECT * FROM users WHERE verification_token=?').get(token);
+    if (!user) {
+      return sendHtml(res, 200, page({
+        title: 'Invalid Link',
+        bodyHtml: '<div style="text-align:center; padding: 4rem;"><h2>Invalid or expired verification link.</h2><a href="/login" class="btn btn-dark">Log In</a></div>',
+      }));
+    }
+    
+    db.prepare('UPDATE users SET email_verified=1, verification_token=NULL WHERE id=?').run(user.id);
+    logActivity(user.id, `Verified email address`);
+    
+    // Auto login
+    const session = auth.createSession(user.id);
+    auth.setCookie(res, 'pimh_session', session.token, { maxAge: 30 * 24 * 60 * 60 });
+    
+    redirect(res, auth.ROLE_HOME[user.role]);
+  });
+
+  router.get('/setup-account', async (req, res) => {
+    const url = new URL(req.url, 'http://x');
+    const token = url.searchParams.get('token');
+    if (!token) return redirect(res, '/login');
+    
+    sendHtml(res, 200, page({
+      title: 'Setup Account — PIMH Academy',
+      headExtra: '<link rel="stylesheet" href="/css/auth.css">',
+      bodyHtml: readFile('setup-account.html'),
+      bootJson: {},
+    }));
+  });
 
   router.get('/student', async (req, res) => {
     const user = guard(req, res, ['STUDENT']); if (!user) return;

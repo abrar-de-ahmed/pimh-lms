@@ -541,6 +541,18 @@ tbody tr:hover{background:var(--paper-deep);}
   border-radius: 8px; font-size: 0.88rem; margin-bottom: 12px; font-weight: 500;
 }
 
+/* ---------- MATERIALS DRAG AND DROP ---------- */
+.materials-week-panel { transition: background-color 0.2s ease, border 0.2s ease; border: 2px dashed transparent; border-radius: 10px; padding: 2px; }
+.materials-week-panel.drag-over { background-color: var(--moss-tint); border-color: var(--moss); box-shadow: 0 0 15px rgba(79, 111, 82, 0.2); }
+
+/* ---------- GRADING SPLIT PANE ---------- */
+.modal.grading-split-pane { max-width: 900px; padding: 0; display: flex; overflow: hidden; }
+.grading-split-left { flex: 1.2; background: var(--paper-deep); padding: 28px; border-right: 1px solid var(--line); display: flex; flex-direction: column; overflow-y: auto; max-height: 80vh; }
+.grading-split-right { flex: 0.8; padding: 28px; background: var(--card); display: flex; flex-direction: column; }
+.grading-split-left h3, .grading-split-right h3 { font-size: 1.15rem; margin-bottom: 4px; }
+.grading-sub-text { margin-top: 16px; font-family: var(--font-body); font-size: 0.95rem; line-height: 1.6; color: var(--ink-soft); background: var(--paper); padding: 18px; border-radius: 8px; border: 1px solid var(--line); flex-grow: 1; overflow-y: auto; white-space: pre-wrap; }
+.grading-split-right .modal-actions { margin-top: auto; padding-top: 22px; }
+
 /* ---------- RESPONSIVE ---------- */
 @media (max-width:960px){
   .dash-grid{grid-template-columns:1fr;}

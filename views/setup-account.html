@@ -1,0 +1,42 @@
+<div class="auth-card">
+  <div class="auth-header">
+    <h1 style="color:var(--c-zinc-900); font-weight:700;">Set Your Password</h1>
+    <p>Welcome to PIMH Academy! Please set your secure password to complete your account setup.</p>
+  </div>
+  <form id="setupForm" style="margin-top: 1.5rem;">
+    <input type="hidden" id="token" value="">
+    <div class="form-group">
+      <label class="form-label" for="password">New Password</label>
+      <input class="form-input" type="password" id="password" required minlength="8" placeholder="At least 8 characters">
+    </div>
+    <div id="authError" class="auth-error"></div>
+    <button type="submit" class="btn btn-dark" style="width:100%; margin-top: 1rem;">Setup Account</button>
+  </form>
+</div>
+<script>
+  // extract token from url and set in hidden input
+  var params = new URLSearchParams(window.location.search);
+  document.getElementById('token').value = params.get('token') || '';
+
+  document.getElementById('setupForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var password = document.getElementById('password').value;
+    var token = document.getElementById('token').value;
+    
+    fetch('/api/auth/setup-teacher', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: token, password: password })
+    })
+    .then(r => r.json().then(data => ({ok: r.ok, data: data})))
+    .then(res => {
+      if(!res.ok) {
+        let el = document.getElementById('authError');
+        el.textContent = res.data.error || 'Failed to setup account';
+        el.classList.add('show');
+      } else {
+        window.location.href = res.data.redirect || '/';
+      }
+    });
+  });
+</script>

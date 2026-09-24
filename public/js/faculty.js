@@ -31,6 +31,7 @@
         html += '<p class="section-sub" style="margin:0;">All caught up.</p>';
       } else {
         d.recentSubmissions.forEach(function (s) {
+          window.__GRADES_CACHE__ = window.__GRADES_CACHE__ || {}; window.__GRADES_CACHE__[s.submissionId] = s;
           html += '<div class="task-row"><span class="task-chip chip-open">Ungraded</span>' +
             '<div class="task-body"><div class="t-name">' + esc(s.studentName) + ' — ' + esc(s.assessmentTitle) + '</div><div class="t-meta">' + esc(s.courseName) + ' · ' + timeAgo(s.submittedAt) + '</div></div>' +
             '<button type="button" class="task-start-btn" data-grade-open="' + s.submissionId + '" data-student="' + esc(s.studentName) + '" data-assessment="' + esc(s.assessmentTitle) + '">Grade</button></div>';
@@ -171,6 +172,7 @@
       html += '<div class="card"><div class="table-wrap"><table><thead><tr><th>Student</th><th>Assessment</th><th>Course</th><th>Submitted</th><th>Score</th><th>Status</th></tr></thead><tbody>';
       if (d.items.length === 0) html += '<tr><td colspan="6" style="color:var(--slate);">No submissions yet.</td></tr>';
       d.items.forEach(function (it) {
+        window.__GRADES_CACHE__ = window.__GRADES_CACHE__ || {}; window.__GRADES_CACHE__[it.submissionId] = it;
         html += '<tr><td><div class="cell-student"><div class="cell-avatar">' + esc(it.studentInitials) + '</div>' + esc(it.studentName) + '</div></td>' +
           '<td>' + esc(it.assessmentTitle) + (it.type === 'quiz' ? ' <span class="cell-sub">(auto-graded)</span>' : '') + '</td>' +
           '<td>' + esc(it.courseName) + '</td><td>' + timeAgo(it.submittedAt) + '</td>' +
@@ -394,10 +396,14 @@
     var btn = e.target.closest('[data-grade-open]');
     if (!btn) return;
     var id = btn.getAttribute('data-grade-open');
-    gradeOverlay.innerHTML = '<div class="modal"><h3>Grade submission</h3><p class="modal-sub">' + esc(btn.getAttribute('data-student')) + ' — ' + esc(btn.getAttribute('data-assessment')) + '</p>' +
+    var subData = (window.__GRADES_CACHE__ || {})[id] || {};
+    var subContentHtml = subData.contentText ? esc(subData.contentText).replace(/\n/g, '<br>') : '<i>No submission text found.</i>';
+    gradeOverlay.innerHTML = '<div class="modal grading-split-pane">' +
+      '<div class="grading-split-left"><h3>Submission Contents</h3><div class="grading-sub-text">' + subContentHtml + '</div></div>' +
+      '<div class="grading-split-right"><h3>Grade submission</h3><p class="modal-sub">' + esc(btn.getAttribute('data-student')) + ' — ' + esc(btn.getAttribute('data-assessment')) + '</p>' +
       '<label>Score (%)</label><input type="number" id="gradeScore" min="0" max="100">' +
-      '<label>Feedback (optional)</label><textarea id="gradeFeedback"></textarea>' +
-      '<div class="modal-actions"><button type="button" class="btn-secondary" id="gradeCancel">Cancel</button><button type="button" class="btn-primary" id="gradeSave">Save</button></div></div>';
+      '<label>Feedback (optional)</label><textarea id="gradeFeedback" rows="4"></textarea>' +
+      '<div class="modal-actions"><button type="button" class="btn-secondary" id="gradeCancel">Cancel</button><button type="button" class="btn-primary" id="gradeSave">Save</button></div></div></div>';
     gradeOverlay.classList.add('show');
     document.getElementById('gradeCancel').addEventListener('click', function () { gradeOverlay.classList.remove('show'); });
     document.getElementById('gradeSave').addEventListener('click', function () {
@@ -542,4 +548,49 @@
     if (name === 'roster') renderRoster();
     if (name === 'profile') renderProfile();
   });
+
+  // -------- DRAG AND DROP HANDLERS --------
+  let dragTimer;
+  document.body.addEventListener('dragover', function(e) {
+    let panel = e.target.closest('.materials-week-panel');
+    if (panel) {
+      e.preventDefault();
+      panel.classList.add('drag-over');
+      clearTimeout(dragTimer);
+    }
+  });
+
+  document.body.addEventListener('dragleave', function(e) {
+    let panel = e.target.closest('.materials-week-panel');
+    if (panel) {
+      dragTimer = setTimeout(() => { panel.classList.remove('drag-over'); }, 50);
+    }
+  });
+
+  document.body.addEventListener('drop', function(e) {
+    let panel = e.target.closest('.materials-week-panel');
+    if (panel) {
+      e.preventDefault();
+      panel.classList.remove('drag-over');
+      let form = panel.querySelector('.materials-upload');
+      if (!form) return;
+      let moduleId = form.getAttribute('data-add-material');
+      let file = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) { showToast('File too large. Max 10MB.', true); return; }
+      
+      showToast('Uploading ' + file.name + '...');
+      let reader = new FileReader();
+      reader.onload = function() {
+        api('/api/modules/' + moduleId + '/materials', { 
+           method: 'POST', 
+           body: { title: file.name.replace(/\.[^/.]+$/, ""), type: 'file', fileName: file.name, fileData: reader.result } 
+        })
+        .then(function () { showToast('File attached.'); renderClasses(); })
+        .catch(function (err) { showToast(err.message, true); });
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
 })();
