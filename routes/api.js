@@ -258,6 +258,20 @@ module.exports = function register(router) {
     sendJson(res, 200, { ok: true, status: newStatus });
   });
 
+  router.delete('/api/users/:id', async (req, res) => {
+    const user = requireRole(req, res, ['SUPER_ADMIN']); if (!user) return;
+    const target = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+    if (!target) return sendJson(res, 404, { error: 'Not found' });
+    if (target.id === user.id) return sendJson(res, 400, { error: 'Cannot delete yourself.' });
+    db.prepare('DELETE FROM enrollments WHERE student_id=?').run(target.id);
+    db.prepare('DELETE FROM quiz_attempts WHERE student_id=?').run(target.id);
+    db.prepare('DELETE FROM submissions WHERE student_id=?').run(target.id);
+    db.prepare('DELETE FROM discussion_posts WHERE author_id=?').run(target.id);
+    db.prepare('DELETE FROM users WHERE id=?').run(target.id);
+    logActivity(user.id, `Permanently deleted account: ${target.email}`);
+    sendJson(res, 200, { ok: true });
+  });
+
   // ---------------- COURSES ----------------
   router.get('/api/courses', async (req, res) => {
     const user = requireAuth(req, res); if (!user) return;
