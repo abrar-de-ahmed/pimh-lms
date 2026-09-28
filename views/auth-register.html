@@ -14,7 +14,12 @@
       <label for="email">Email</label>
       <input type="email" id="email" required autocomplete="email">
       <label for="password">Password</label>
-      <input type="password" id="password" required minlength="8" autocomplete="new-password">
+      <div style="position:relative;">
+        <input type="password" id="password" required minlength="8" autocomplete="new-password" style="width:100%; box-sizing:border-box; padding-right:36px;">
+        <button type="button" tabindex="-1" onclick="var p=document.getElementById('password'); p.type=p.type==='password'?'text':'password'; this.style.opacity=p.type==='password'?'0.4':'1';" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; padding:0; display:flex; opacity:0.4; color:var(--text);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        </button>
+      </div>
       <button type="submit" class="btn-primary">Create account</button>
     </form>
     <div class="auth-error" id="authError"></div>

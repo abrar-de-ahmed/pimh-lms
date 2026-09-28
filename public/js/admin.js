@@ -66,7 +66,7 @@
           '<td>' + esc(t.email) + '<div class="cell-sub">' + esc(t.phone || '') + '</div></td>' +
           '<td>' + (t.courses.length ? esc(t.courses.join(', ')) : '<span class="cell-sub">Unassigned</span>') + '</td>' +
           '<td><span class="pill ' + (t.status === 'ACTIVE' ? 'pill-active' : 'pill-inactive') + '">' + t.status + '</span></td>' +
-          '<td style="white-space:nowrap; text-align:right;">' + (isSuper ? '<button class="btn-secondary btn-small" data-edit-user="' + t.id + '" data-role="FACULTY">Edit</button> <button class="btn-secondary btn-small" data-del-user="' + t.id + '">Delete</button> <button class="btn-danger-text" data-toggle-user="' + t.id + '">' + (t.status === 'ACTIVE' ? 'Deactivate' : 'Reactivate') + '</button>' : '') + '</td></tr>';
+          '<td style="white-space:nowrap; text-align:right;">' + (isSuper ? '<button class="btn-secondary btn-small" data-edit-user="' + t.id + '" data-role="FACULTY">Edit</button> <button class="btn-danger-text btn-small" data-del-user="' + t.id + '">&times; Delete</button> <button class="btn-danger-text" data-toggle-user="' + t.id + '">' + (t.status === 'ACTIVE' ? 'Deactivate' : 'Reactivate') + '</button>' : '') + '</td></tr>';
       });
       html += '</tbody></table></div></div></div>';
 
@@ -77,7 +77,7 @@
           '<td>' + esc(s.email) + '<div class="cell-sub">' + esc(s.phone || '') + '</div></td>' +
           '<td>' + s.enrolledCount + ' course(s)</td>' +
           '<td><span class="pill ' + (s.status === 'ACTIVE' ? 'pill-active' : 'pill-inactive') + '">' + s.status + '</span></td>' +
-          '<td style="white-space:nowrap; text-align:right;"><button class="btn-secondary btn-small" data-edit-user="' + s.id + '" data-role="STUDENT">Edit</button> <button class="btn-secondary btn-small" data-del-user="' + s.id + '">Delete</button> <button class="btn-danger-text" data-toggle-user="' + s.id + '">' + (s.status === 'ACTIVE' ? 'Deactivate' : 'Reactivate') + '</button></td></tr>';
+          '<td style="white-space:nowrap; text-align:right;"><button class="btn-secondary btn-small" data-edit-user="' + s.id + '" data-role="STUDENT">Edit</button> <button class="btn-danger-text btn-small" data-del-user="' + s.id + '">&times; Delete</button> <button class="btn-danger-text" data-toggle-user="' + s.id + '">' + (s.status === 'ACTIVE' ? 'Deactivate' : 'Reactivate') + '</button></td></tr>';
       });
       html += '</tbody></table></div></div></div>';
 
@@ -89,7 +89,7 @@
             '<td>' + esc(a.email) + '<div class="cell-sub">' + esc(a.phone || '') + '</div></td>' +
             '<td>' + (a.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin') + '</td>' +
             '<td><span class="pill ' + (a.status === 'ACTIVE' ? 'pill-active' : 'pill-inactive') + '">' + a.status + '</span></td>' +
-            '<td style="white-space:nowrap; text-align:right;"><button class="btn-secondary btn-small" data-edit-user="' + a.id + '" data-role="' + a.role + '">Edit</button> <button class="btn-secondary btn-small" data-del-user="' + a.id + '">Delete</button> <button class="btn-danger-text" data-toggle-user="' + a.id + '">' + (a.status === 'ACTIVE' ? 'Deactivate' : 'Reactivate') + '</button></td></tr>';
+            '<td style="white-space:nowrap; text-align:right;"><button class="btn-secondary btn-small" data-edit-user="' + a.id + '" data-role="' + a.role + '">Edit</button> <button class="btn-danger-text btn-small" data-del-user="' + a.id + '">&times; Delete</button> <button class="btn-danger-text" data-toggle-user="' + a.id + '">' + (a.status === 'ACTIVE' ? 'Deactivate' : 'Reactivate') + '</button></td></tr>';
         });
         html += '</tbody></table></div></div></div>';
       }
