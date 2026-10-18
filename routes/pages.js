@@ -56,6 +56,22 @@ module.exports = function register(router) {
     sendHtml(res, 200, readFile('landing.html'));
   });
 
+  router.get('/privacy', async (req, res) => {
+    sendHtml(res, 200, page({
+      title: 'Privacy Policy — PIMH Academy',
+      headExtra: '<link rel="stylesheet" href="/css/auth.css">',
+      bodyHtml: `<div class="auth-wrap" style="max-width:720px;"><a href="/" class="auth-brand">PIMH <span>Academy</span></a><div class="auth-card"><h1>Privacy Policy</h1><p class="sub">Last updated: October 2026</p><p style="line-height:1.6; color:#334155;">PIMH Academy collects only your name, email address, and profile information required to create and manage your student or faculty learning account, track course progress, and issue completion certificates. We do not sell or share your personal data with third parties.</p><p style="line-height:1.6; color:#334155; margin-top:12px;">For questions or data deletion requests, contact <a href="mailto:craft@craftedmindss.com">craft@craftedmindss.com</a>.</p></div><div class="auth-footer"><a href="/">Back to PIMH Academy</a></div></div>`,
+    }));
+  });
+
+  router.get('/terms', async (req, res) => {
+    sendHtml(res, 200, page({
+      title: 'Terms of Service — PIMH Academy',
+      headExtra: '<link rel="stylesheet" href="/css/auth.css">',
+      bodyHtml: `<div class="auth-wrap" style="max-width:720px;"><a href="/" class="auth-brand">PIMH <span>Academy</span></a><div class="auth-card"><h1>Terms of Service</h1><p class="sub">Last updated: October 2026</p><p style="line-height:1.6; color:#334155;">By accessing PIMH Academy, you agree to use course materials, assessments, and discussion boards solely for enrolled educational purposes and to maintain academic integrity across all coursework and examinations.</p><p style="line-height:1.6; color:#334155; margin-top:12px;">For support, contact <a href="mailto:craft@craftedmindss.com">craft@craftedmindss.com</a>.</p></div><div class="auth-footer"><a href="/">Back to PIMH Academy</a></div></div>`,
+    }));
+  });
+
   router.get('/login', async (req, res) => {
     const user = auth.currentUser(req);
     if (user) return redirect(res, auth.ROLE_HOME[user.role]);
