@@ -341,8 +341,9 @@ async function req(baseUrl, method, urlPath, { body, cookie, redirect = 'manual'
     ok('Both official HEC-Approved Diplomas (Educational & Addiction Psychology) and fees verified');
 
     assert(landing.text.includes('Academy PIMH') && landing.text.includes('Salam! Welcome to PIMH Academy. How can we help you today?') && landing.text.includes('923342466777'), 'WhatsApp widget must use 03342466777 and CraftedMinds popup design');
-    assert(landing.text.includes('data-set-theme="1"') && landing.text.includes('data-set-theme="4"'), 'Landing page must include the 4-style theme switcher');
-    ok('CraftedMinds-style WhatsApp widget (03342466777) and 4-theme switcher verified');
+    assert(!landing.text.includes('themeSwitcher') && !landing.text.includes('data-set-theme'), 'Theme switcher must be removed now that the landing page is locked');
+    assert(landing.text.includes('width=device-width, initial-scale=1.0') && landing.text.includes('@media (max-width:640px)') && landing.text.includes('@media (max-width:380px)'), 'Landing page must include full mobile responsive breakpoints');
+    ok('CraftedMinds-style WhatsApp widget (03342466777), locked landing page, and mobile responsiveness verified');
 
     console.log(`\n🎉 ALL ${passed} UNIT & INTEGRATION ASSERTIONS PASSED SUCCESSFULLY!\n`);
   } finally {
