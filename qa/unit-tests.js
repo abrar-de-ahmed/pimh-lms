@@ -94,9 +94,17 @@ async function req(baseUrl, method, urlPath, { body, cookie, redirect = 'manual'
     console.log('======================================================\n');
 
     // -------------------------------------------------------------------------
-    // TEST 1: Master Super Admin Accounts (abrar_a@live.com & craft@craftedmindss.com)
+    // TEST 1: Master Super Admin Accounts & Clean Database State (Task #5)
     // -------------------------------------------------------------------------
-    console.log('[1/6] Testing Master Super Admin Accounts (Task #5)...');
+    console.log('[1/7] Testing Master Super Admin Accounts & Clean Database State...');
+    const allUsers = db.prepare('SELECT email, role FROM users ORDER BY email').all();
+    assert.strictEqual(allUsers.length, 2, `Database must only contain the 2 Master Super Admins, found ${allUsers.length}`);
+    ok('Zero dummy users present — only the 2 Master Super Admin accounts exist');
+
+    const allCourses = db.prepare('SELECT id, slug, name FROM courses ORDER BY id').all();
+    assert.strictEqual(allCourses.length, 3, 'All 3 core courses must be preserved');
+    ok('All 3 core courses preserved in database');
+
     for (const email of ['abrar_a@live.com', 'craft@craftedmindss.com']) {
       const row = db.prepare('SELECT * FROM users WHERE lower(email) = lower(?)').get(email);
       assert(row, `User ${email} must exist in database`);
@@ -297,6 +305,7 @@ async function req(baseUrl, method, urlPath, { body, cookie, redirect = 'manual'
 
     console.log(`\n🎉 ALL ${passed} UNIT & INTEGRATION ASSERTIONS PASSED SUCCESSFULLY!\n`);
   } finally {
+    db.prepare(`DELETE FROM activity_log WHERE text LIKE '%unit.student.%' OR text LIKE '%unit.faculty.%' OR text LIKE '%Unit Test%' OR text LIKE '%Ran deadline reminder engine%'`).run();
     server.close();
   }
 })().catch((err) => {
