@@ -11,7 +11,30 @@
     certificates: 'Certificates', profile: 'Profile',
   };
 
-  var state = { courses: [], dash: null };
+  var state = { courses: [], dash: null, isLocked: false };
+  var LOCKED_TABS = ['courses', 'materials', 'schedule', 'grades', 'discussion', 'certificates'];
+
+  function syncSidebarLock(isLocked) {
+    state.isLocked = !!isLocked;
+    LOCKED_TABS.forEach(function (tab) {
+      document.querySelectorAll('.sb-link[data-view="' + tab + '"]').forEach(function (link) {
+        var badge = link.querySelector('.sb-lock-badge');
+        if (state.isLocked) {
+          link.style.opacity = '0.55';
+          if (!badge) {
+            var b = document.createElement('span');
+            b.className = 'sb-lock-badge';
+            b.style.cssText = 'margin-left:auto; font-size:0.75rem;';
+            b.textContent = '🔒';
+            link.appendChild(b);
+          }
+        } else {
+          link.style.opacity = '';
+          if (badge) badge.remove();
+        }
+      });
+    });
+  }
 
   function viewShell(name) {
     return '<section class="view" id="view-' + name + '"></section>';
@@ -22,6 +45,13 @@
   function renderDashboard() {
     return api('/api/dashboard/student').then(function (d) {
       state.dash = d;
+      syncSidebarLock(d.isLocked);
+
+      if (d.isLocked) {
+        renderLockedDashboard(d);
+        return;
+      }
+
       var stats = d.stats || { activeCourses: d.courses.length, completedModules: 0, totalModules: 0, learningStreak: 5, avgScore: d.overallProgress };
       
       var html = '<div class="welcome"><h2>Welcome back, ' + esc(d.name.split(' ')[0]) + '</h2>' +
@@ -125,6 +155,173 @@
     });
   }
 
+  function renderLockedDashboard(d) {
+    var pending = d.pendingEnrollments || [];
+    var available = d.availableCourses || [];
+    var hasPending = pending.length > 0;
+
+    var html = '<div class="welcome"><h2>Welcome to PIMH Academy, ' + esc(d.name.split(' ')[0]) + ' 👋</h2>' +
+      '<p>Your learning dashboard is currently locked until your course enrollment and fee payment receipt are verified by Admissions.</p></div>';
+
+    // 3-Step Enrollment Progress Gate Banner
+    html += '<div class="card" style="margin-bottom:22px; border-left:4px solid ' + (hasPending ? 'var(--gold, #C89D3C)' : 'var(--moss, #4F6F52)') + ';">' +
+      '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">' +
+      '<div style="display:flex; align-items:center; gap:12px;">' +
+        '<div style="width:34px; height:34px; border-radius:50%; background:#E5F0E6; color:#2E5A36; display:flex; align-items:center; justify-content:center; font-weight:700;">✓</div>' +
+        '<div><div style="font-weight:600; font-size:0.92rem;">Step 1: Account Created</div><div style="font-size:0.8rem; color:var(--slate);">Email verified &amp; active</div></div>' +
+      '</div>' +
+      '<div style="display:flex; align-items:center; gap:12px;">' +
+        '<div style="width:34px; height:34px; border-radius:50%; background:' + (hasPending ? '#E5F0E6' : '#FFF4DC') + '; color:' + (hasPending ? '#2E5A36' : '#9B6B00') + '; display:flex; align-items:center; justify-content:center; font-weight:700;">' + (hasPending ? '✓' : '2') + '</div>' +
+        '<div><div style="font-weight:600; font-size:0.92rem;">Step 2: Upload Payment Receipt</div><div style="font-size:0.8rem; color:var(--slate);">' + (hasPending ? 'Receipt uploaded' : 'Select course &amp; upload receipt picture') + '</div></div>' +
+      '</div>' +
+      '<div style="display:flex; align-items:center; gap:12px;">' +
+        '<div style="width:34px; height:34px; border-radius:50%; background:' + (hasPending ? '#FFF4DC' : '#F0EFEA') + '; color:' + (hasPending ? '#9B6B00' : 'var(--slate)') + '; display:flex; align-items:center; justify-content:center; font-weight:700;">' + (hasPending ? '⏳' : '🔒') + '</div>' +
+        '<div><div style="font-weight:600; font-size:0.92rem;">Step 3: Admin Verification</div><div style="font-size:0.8rem; color:var(--slate);">' + (hasPending ? 'Awaiting Super Admin / Admin approval' : 'Unlocks full student dashboard') + '</div></div>' +
+      '</div>' +
+      '</div></div>';
+
+    html += '<div class="dash-grid"><div>';
+
+    // Pending Enrollment Review Card (if student already uploaded a receipt)
+    if (hasPending) {
+      html += '<div class="card" style="background:#FFFDF7; border:1px solid #F0DFB4;">' +
+        '<div class="card-head"><h3 style="margin:0;">⏳ Payment Receipt Under Review</h3><span class="pill pill-open">Pending Approval</span></div>' +
+        '<p style="color:var(--slate); font-size:0.92rem; margin-top:8px;">Your payment receipt has been received! Once the Super Admin or Admin approves your enrollment, your courses, modules, quizzes, and certificates will unlock automatically.</p>';
+      pending.forEach(function (p) {
+        var isImg = p.receiptUrl && /\.(jpg|jpeg|png)$/i.test(p.receiptUrl);
+        html += '<div style="padding:14px; background:#fff; border:1px solid var(--line); border-radius:10px; margin-top:12px;">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">' +
+            '<div><div style="font-weight:700; color:var(--ink);">' + esc(p.courseName) + '</div>' +
+            '<div style="font-size:0.8rem; color:var(--slate);">Submitted ' + timeAgo(p.createdAt) + '</div></div>' +
+            (p.receiptUrl ? '<a href="' + esc(p.receiptUrl) + '" target="_blank" rel="noopener" class="btn-secondary" style="font-size:0.82rem; padding:6px 12px; text-decoration:none;">View Uploaded Receipt &#8599;</a>' : '') +
+          '</div>' +
+          (isImg ? '<div style="margin-top:12px;"><img src="' + esc(p.receiptUrl) + '" alt="Payment Receipt" style="max-height:160px; border-radius:8px; border:1px solid var(--line); object-fit:contain;"></div>' : '') +
+          '</div>';
+      });
+      html += '<div style="margin-top:16px;"><button type="button" class="btn-primary" id="refreshLockStatusBtn">🔄 Check Approval Status</button></div></div>';
+    }
+
+    // Inline Payment Receipt Upload Card (if courses are available to apply for)
+    if (available.length > 0) {
+      html += '<div class="card">' +
+        '<div class="card-head"><h3 style="margin:0;">' + (hasPending ? 'Enroll in Another Course' : '📸 Upload Payment Receipt to Unlock Dashboard') + '</h3></div>' +
+        '<p style="color:var(--slate); font-size:0.92rem; margin-top:6px;">Select your course below and upload a picture (JPG/PNG) or PDF of your fee payment receipt for Admin approval.</p>' +
+        '<form id="dashGateEnrollForm" style="margin-top:16px;">' +
+          '<div class="field" style="margin-bottom:14px;">' +
+            '<label style="display:block; font-weight:600; margin-bottom:6px; font-size:0.9rem;">1. Select Course <span style="color:var(--fire);">*</span></label>' +
+            '<select id="dashGateCourseSelect" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-size:0.95rem; background:#fff;">' +
+              available.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') +
+            '</select>' +
+          '</div>' +
+          '<div class="field" style="margin-bottom:16px;">' +
+            '<label style="display:block; font-weight:600; margin-bottom:6px; font-size:0.9rem;">2. Upload Payment Receipt Picture / PDF <span style="color:var(--fire);">*</span></label>' +
+            '<label for="dashGateReceiptInput" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 16px; border:2px dashed var(--line); border-radius:10px; cursor:pointer; background:#FAF8F3; text-align:center; transition:border-color 0.2s;">' +
+              '<span style="font-size:1.6rem; margin-bottom:6px;">🧾</span>' +
+              '<span style="font-weight:600; color:var(--ink);">Click to choose Payment Receipt Picture (JPG, PNG, or PDF)</span>' +
+              '<span style="font-size:0.8rem; color:var(--slate); margin-top:4px;">Maximum file size: 10 MB</span>' +
+            '</label>' +
+            '<input type="file" id="dashGateReceiptInput" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" style="display:none;">' +
+            '<div id="dashGateReceiptPreview" style="display:none; margin-top:12px; padding:12px; border:1px solid var(--line); border-radius:8px; background:#fff;"></div>' +
+          '</div>' +
+          '<button type="submit" class="btn-primary" id="dashGateSubmitBtn" style="width:100%; padding:12px; font-size:0.98rem;">Submit Payment Receipt for Approval &#8594;</button>' +
+        '</form></div>';
+    }
+
+    html += '</div><div>';
+
+    // Locked Features Summary Card
+    html += '<div class="card"><div class="card-head"><h3 style="margin:0;">🔒 Locked Learning Features</h3></div>' +
+      '<p style="color:var(--slate); font-size:0.88rem; margin-top:6px;">The following sections will unlock automatically once Super Admin / Admin approves your payment receipt:</p>' +
+      '<div style="display:flex; flex-direction:column; gap:10px; margin-top:12px;">' +
+        '<div style="padding:10px 12px; border-radius:8px; background:#F7F5EE; color:var(--slate); font-size:0.9rem;">🔒 <strong>My Courses &amp; Weekly Modules</strong> — Video &amp; reading lessons</div>' +
+        '<div style="padding:10px 12px; border-radius:8px; background:#F7F5EE; color:var(--slate); font-size:0.9rem;">🔒 <strong>Quizzes &amp; Assignments</strong> — Timed assessments &amp; grading</div>' +
+        '<div style="padding:10px 12px; border-radius:8px; background:#F7F5EE; color:var(--slate); font-size:0.9rem;">🔒 <strong>Study Materials &amp; Live Schedule</strong> — Slides &amp; Zoom sessions</div>' +
+        '<div style="padding:10px 12px; border-radius:8px; background:#F7F5EE; color:var(--slate); font-size:0.9rem;">🔒 <strong>Discussion Board &amp; Certificates</strong> — Cohort Q&amp;A &amp; diploma</div>' +
+      '</div></div>';
+
+    // Notifications Card
+    html += '<div class="card"><div class="card-head"><h3>Notifications</h3><a href="#" data-view="notifications">View all</a></div>';
+    if (d.notifications.length === 0) html += '<p class="section-sub" style="margin:0;">No notifications yet.</p>';
+    d.notifications.forEach(function (n) {
+      html += '<div class="notif-row' + (n.isRead ? '' : ' unread') + '"><span class="notif-dot"></span><div><div class="notif-text">' + esc(n.text) + '</div><div class="notif-time">' + timeAgo(n.createdAt) + '</div></div></div>';
+    });
+    html += '</div></div></div>';
+
+    document.getElementById('view-dashboard').innerHTML = html;
+
+    var refreshBtn = document.getElementById('refreshLockStatusBtn');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', function () {
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = 'Checking...';
+        renderDashboard().then(function () {
+          if (state.isLocked) showToast('Still awaiting Admin approval.');
+          else showToast('🎉 Enrollment approved! Dashboard unlocked.');
+        });
+      });
+    }
+
+    var gateForm = document.getElementById('dashGateEnrollForm');
+    if (gateForm) {
+      var fileInput = document.getElementById('dashGateReceiptInput');
+      var previewBox = document.getElementById('dashGateReceiptPreview');
+      var submitBtn = document.getElementById('dashGateSubmitBtn');
+      var gateDataUrl = null;
+
+      fileInput.addEventListener('change', function () {
+        var f = fileInput.files[0];
+        if (!f) {
+          gateDataUrl = null;
+          previewBox.style.display = 'none';
+          previewBox.innerHTML = '';
+          return;
+        }
+        if (f.size > 10 * 1024 * 1024) {
+          showToast('File too large (Max 10MB)', true);
+          fileInput.value = '';
+          return;
+        }
+        var reader = new FileReader();
+        reader.onload = function () {
+          gateDataUrl = reader.result;
+          var isImage = f.type && f.type.indexOf('image/') === 0;
+          previewBox.style.display = 'block';
+          previewBox.innerHTML = '<div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">' +
+            '<span style="font-weight:600; font-size:0.88rem;">&#128206; ' + esc(f.name) + '</span>' +
+            '<button type="button" id="dashGateRemoveFile" style="border:none; background:none; color:var(--fire); cursor:pointer; font-weight:600;">Remove &#10005;</button>' +
+            '</div>' +
+            (isImage ? '<div style="margin-top:10px;"><img src="' + gateDataUrl + '" alt="Receipt preview" style="max-height:180px; max-width:100%; border-radius:8px; border:1px solid var(--line);"></div>' : '');
+          document.getElementById('dashGateRemoveFile').addEventListener('click', function () {
+            fileInput.value = '';
+            gateDataUrl = null;
+            previewBox.style.display = 'none';
+            previewBox.innerHTML = '';
+          });
+        };
+        reader.readAsDataURL(f);
+      });
+
+      gateForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var courseId = document.getElementById('dashGateCourseSelect').value;
+        if (!courseId) return showToast('Please select a course.', true);
+        if (!gateDataUrl) return showToast('Please choose a payment receipt image or PDF first.', true);
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Uploading Payment Receipt...';
+        api('/api/enrollments/request', { method: 'POST', body: { courseId: courseId, receiptDataUrl: gateDataUrl } })
+          .then(function () {
+            showToast('Payment receipt uploaded! Waiting for Super Admin / Admin approval.');
+            renderDashboard();
+          })
+          .catch(function (err) {
+            showToast(err.message, true);
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Payment Receipt for Approval \u2192';
+          });
+      });
+    }
+  }
+
   function ringSvg(pct) {
     var r = 46, c = 2 * Math.PI * r;
     var offset = c - (c * pct) / 100;
@@ -205,7 +402,17 @@
   }
 
   window.PIMH.studentInit = function () {
+    api('/api/dashboard/student').then(function (d) {
+      state.dash = d;
+      syncSidebarLock(d.isLocked);
+    }).catch(function () {});
+
     P.initViewSwitching(titles, function (name) {
+      if (state.isLocked && LOCKED_TABS.indexOf(name) !== -1) {
+        showToast('🔒 Locked until your course enrollment & payment receipt are approved by Admin.', true);
+        setTimeout(function () { P.showView('dashboard'); }, 10);
+        return;
+      }
       if (name === 'dashboard') renderDashboard();
       if (name === 'catalog') renderCatalog();
       if (name === 'courses') renderCoursesFull();
@@ -264,16 +471,27 @@
   // ---------------- COURSE CATALOG ----------------
   function renderCatalog() {
     return api('/api/catalog').then(function (d) {
-      var html = '<h2 class="section-title">Course Catalog</h2><p class="section-sub">Browse available courses and request enrollment.</p>';
+      var html = '<h2 class="section-title">Course Catalog</h2><p class="section-sub">Browse available courses, upload your payment receipt picture, and request enrollment.</p>';
+      if (d.pending && d.pending.length > 0) {
+        html += '<div class="card" style="margin-bottom:20px; background:#FFFDF7; border:1px solid #F0DFB4;">' +
+          '<div class="card-head"><h3 style="margin:0;">⏳ Pending Enrollment Requests</h3><span class="pill pill-open">Awaiting Admin Approval</span></div>';
+        d.pending.forEach(function (p) {
+          html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-top:1px solid var(--line);">' +
+            '<div><strong>' + esc(p.courseName) + '</strong><div style="font-size:0.8rem; color:var(--slate);">Receipt submitted ' + timeAgo(p.createdAt) + '</div></div>' +
+            (p.receiptUrl ? '<a href="' + esc(p.receiptUrl) + '" target="_blank" rel="noopener" class="btn-secondary" style="font-size:0.82rem; padding:6px 12px; text-decoration:none;">View Receipt &#8599;</a>' : '') +
+            '</div>';
+        });
+        html += '</div>';
+      }
       if (d.catalog.length === 0) {
-        html += '<div class="card"><p style="color:var(--slate); margin:0;">No new courses available to enroll in right now.</p></div>';
+        html += '<div class="card"><p style="color:var(--slate); margin:0;">No additional courses available to enroll in right now.</p></div>';
       } else {
         html += '<div class="catalog-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:20px; align-items:stretch;">';
         d.catalog.forEach(function (c) {
           html += '<div class="card" style="display:flex; flex-direction:column;">' +
             '<div style="flex-grow:1;"><h3 style="margin-top:0;">' + esc(c.name) + '</h3>' +
             '<p style="color:var(--slate); font-size:0.95rem; line-height:1.4;">' + esc(c.description || 'A comprehensive training module.') + '</p></div>' +
-            '<div style="margin-top:20px;"><button type="button" class="btn-primary" style="width:100%;" data-request-enroll="' + c.id + '" data-course-title="' + esc(c.name) + '">Request Enrollment</button></div>' +
+            '<div style="margin-top:20px;"><button type="button" class="btn-primary" style="width:100%;" data-request-enroll="' + c.id + '" data-course-title="' + esc(c.name) + '">Upload Receipt &amp; Enroll</button></div>' +
             '</div>';
         });
         html += '</div>';
@@ -298,15 +516,17 @@
       return o;
     })();
     overlay.innerHTML = '<div class="modal wide"><h3>Enroll in ' + esc(courseTitle) + '</h3>' +
-      '<p class="modal-sub">To secure your seat, please upload a clear image or PDF of your fee payment receipt.</p>' +
+      '<p class="modal-sub">To secure your seat, please upload a clear image (JPG/PNG) or PDF of your fee payment receipt.</p>' +
       '<div class="settings-grid" style="grid-template-columns:1fr; margin-top:20px;">' +
       '<div class="field">' +
-      '<label>Payment Receipt <span style="color:var(--fire);">*</span></label>' +
+      '<label>Payment Receipt Picture / PDF <span style="color:var(--fire);">*</span></label>' +
       '<div class="assign-attach-row">' +
       '<label class="assign-attach-btn" for="enrollReceiptInput" style="cursor:pointer; display:inline-block;">&#128206; Choose File (Max 10MB)</label>' +
       '<input type="file" id="enrollReceiptInput" accept=".pdf,.jpg,.jpeg,.png" style="display:none;">' +
       '<span id="enrollReceiptChip" style="display:none; margin-left:10px;" class="attach-chip"></span>' +
-      '</div></div></div>' +
+      '</div>' +
+      '<div id="enrollReceiptImgPreview" style="display:none; margin-top:12px;"></div>' +
+      '</div></div>' +
       '<div class="modal-actions" style="margin-top:24px;">' +
       '<button type="button" class="btn-secondary" id="enrollCancel">Cancel</button>' +
       '<button type="button" class="btn-primary" id="enrollSubmit">Submit Request</button></div></div>';
@@ -314,12 +534,13 @@
 
     var fileInput = document.getElementById('enrollReceiptInput');
     var fileChip = document.getElementById('enrollReceiptChip');
+    var imgPreview = document.getElementById('enrollReceiptImgPreview');
     var fileDataUrl = null;
 
     fileInput.addEventListener('change', function() {
       var f = fileInput.files[0];
       if (!f) {
-        fileChip.style.display = 'none'; fileDataUrl = null; return;
+        fileChip.style.display = 'none'; imgPreview.style.display = 'none'; imgPreview.innerHTML = ''; fileDataUrl = null; return;
       }
       if (f.size > 10 * 1024 * 1024) { showToast('File too large (Max 10MB)', true); fileInput.value = ''; return; }
       var reader = new FileReader();
@@ -327,8 +548,15 @@
         fileDataUrl = reader.result;
         fileChip.style.display = 'inline-flex';
         fileChip.innerHTML = '&#128206; ' + esc(f.name) + ' <button type="button" class="attach-chip-remove" title="Remove">&#10005;</button>';
+        if (f.type && f.type.indexOf('image/') === 0) {
+          imgPreview.style.display = 'block';
+          imgPreview.innerHTML = '<img src="' + fileDataUrl + '" alt="Receipt preview" style="max-height:180px; max-width:100%; border-radius:8px; border:1px solid var(--line);">';
+        } else {
+          imgPreview.style.display = 'none';
+          imgPreview.innerHTML = '';
+        }
         fileChip.querySelector('.attach-chip-remove').addEventListener('click', function() {
-          fileInput.value = ''; fileDataUrl = null; fileChip.style.display = 'none';
+          fileInput.value = ''; fileDataUrl = null; fileChip.style.display = 'none'; imgPreview.style.display = 'none'; imgPreview.innerHTML = '';
         });
       };
       reader.readAsDataURL(f);
@@ -343,7 +571,8 @@
         .then(function() {
           overlay.classList.remove('show');
           showToast('Enrollment request submitted! Waiting for admin approval.');
-          renderCatalog(); // Refresh catalog to hide the course we just applied for
+          renderCatalog();
+          renderDashboard();
         })
         .catch(function(err) {
           showToast(err.message, true);

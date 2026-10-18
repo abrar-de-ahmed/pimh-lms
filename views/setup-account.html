@@ -1,20 +1,24 @@
-<div class="auth-card">
-  <div class="auth-header">
-    <h1 style="color:var(--c-zinc-900); font-weight:700;">Set Your Password</h1>
-    <p>Welcome to PIMH Academy! Please set your secure password to complete your account setup.</p>
-  </div>
-  <form id="setupForm" style="margin-top: 1.5rem;">
-    <input type="hidden" id="token" value="">
-    <div class="form-group">
-      <label class="form-label" for="password">New Password</label>
-      <input class="form-input" type="password" id="password" required minlength="8" placeholder="At least 8 characters">
-    </div>
+<div class="auth-wrap">
+  <a href="/" class="auth-brand">PIMH <span>Academy</span></a>
+  <div class="auth-card">
+    <h1>Set Your Password</h1>
+    <p class="sub">Welcome to PIMH Academy! Please set your secure password to verify your email and complete your account setup.</p>
+    <form id="setupForm">
+      <input type="hidden" id="token" value="">
+      <label for="password">New Password</label>
+      <div style="position:relative;">
+        <input type="password" id="password" required minlength="8" placeholder="At least 8 characters" style="width:100%; box-sizing:border-box; padding-right:36px;">
+        <button type="button" tabindex="-1" onclick="var p=document.getElementById('password'); p.type=p.type==='password'?'text':'password'; this.style.opacity=p.type==='password'?'0.4':'1';" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; padding:0; display:flex; opacity:0.4; color:var(--text);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        </button>
+      </div>
+      <button type="submit" class="btn-primary">Complete Account Setup</button>
+    </form>
     <div id="authError" class="auth-error"></div>
-    <button type="submit" class="btn btn-dark" style="width:100%; margin-top: 1rem;">Setup Account</button>
-  </form>
+  </div>
+  <div class="auth-footer"><a href="/login">Back to login</a> · <a href="/">Back to site</a></div>
 </div>
 <script>
-  // extract token from url and set in hidden input
   var params = new URLSearchParams(window.location.search);
   document.getElementById('token').value = params.get('token') || '';
 
@@ -28,10 +32,10 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: token, password: password })
     })
-    .then(r => r.json().then(data => ({ok: r.ok, data: data})))
-    .then(res => {
-      if(!res.ok) {
-        let el = document.getElementById('authError');
+    .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+    .then(function(res) {
+      if (!res.ok) {
+        var el = document.getElementById('authError');
         el.textContent = res.data.error || 'Failed to setup account';
         el.classList.add('show');
       } else {

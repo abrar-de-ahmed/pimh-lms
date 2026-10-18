@@ -350,11 +350,27 @@
 
   function renderActivity() {
     return api('/api/activity').then(function (d) {
-      var html = '<div class="section-title">Activity Log</div><div class="section-sub">Admin-level actions across the academy.</div><div class="card">';
+      var html = '<div class="card-head" style="margin-bottom:14px;"><div><div class="section-title" style="margin-bottom:4px;">Activity Log</div><div class="section-sub" style="margin-bottom:0;">Admin-level actions across the academy.</div></div>' +
+        '<button type="button" class="btn-secondary btn-small" id="runRemindersBtn">📧 Send Due Reminders Now</button></div><div class="card">';
       if (d.log.length === 0) html += '<p style="color:var(--slate);">No activity yet.</p>';
       d.log.forEach(function (l) { html += '<div class="log-item"><span class="log-dot"></span><div class="log-body"><div class="lg-text">' + esc(l.text) + (l.actorName ? ' <span class="cell-sub">— ' + esc(l.actorName) + '</span>' : '') + '</div><div class="lg-meta">' + timeAgo(l.createdAt) + '</div></div></div>'; });
       html += '</div>';
       document.getElementById('view-activity').innerHTML = html;
+      var remBtn = document.getElementById('runRemindersBtn');
+      if (remBtn) {
+        remBtn.addEventListener('click', function () {
+          remBtn.disabled = true;
+          remBtn.textContent = 'Checking deadlines...';
+          api('/api/admin/reminders/run', { method: 'POST' }).then(function (res) {
+            showToast('Reminders complete: ' + res.remindersSent + ' sent (' + res.checkedAssessments + ' due assessments checked).');
+            renderActivity();
+          }).catch(function (err) {
+            showToast(err.message, true);
+            remBtn.disabled = false;
+            remBtn.textContent = '📧 Send Due Reminders Now';
+          });
+        });
+      }
     });
   }
 

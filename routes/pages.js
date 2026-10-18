@@ -122,7 +122,7 @@ module.exports = function register(router) {
     }
     
     db.prepare('UPDATE users SET email_verified=1, verification_token=NULL WHERE id=?').run(user.id);
-    logActivity(user.id, `Verified email address`);
+    db.prepare('INSERT INTO activity_log (actor_id, text) VALUES (?, ?)').run(user.id, 'Verified email address');
     
     // Auto login
     const session = auth.createSession(user.id);

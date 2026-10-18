@@ -54,16 +54,22 @@ module.exports = function register(router) {
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid);
     logActivity(user.id, `New student account registered (pending verification): ${name}`);
     
+    const proto = req.headers['x-forwarded-proto'] || 'http';
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
+    const origin = req.headers.origin || `${proto}://${host}`;
+
     // Send Verification Email
-    const verifyUrl = `${req.headers.origin || 'http://localhost:3000'}/verify-email?token=${token}`;
+    const verifyUrl = `${origin}/verify-email?token=${token}`;
     mailer.sendEmail({
       to: email,
       subject: 'Verify your PIMH Academy Account',
       html: `<h1>Welcome, ${name}!</h1><p>Please click the link below to verify your email address and activate your account:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`
     }).catch(e => console.error(e));
 
-    // Do NOT log them in immediately. Tell the frontend to show a success message.
-    sendJson(res, 200, { ok: true, requireVerification: true, message: 'Please check your email to verify your account.' });
+    // Issue session so /verify-pending and Resend Verification Email work seamlessly while guard() blocks /student
+    const session = auth.createSession(user.id);
+    auth.setCookie(res, 'pimh_session', session.token, { maxAge: 30 * 24 * 60 * 60 });
+    sendJson(res, 200, { ok: true, requireVerification: true, redirect: '/verify-pending', message: 'Please check your email to verify your account.' });
   });
 
   router.post('/api/auth/login', async (req, res) => {
@@ -79,7 +85,8 @@ module.exports = function register(router) {
     }
     const session = auth.createSession(user.id);
     auth.setCookie(res, 'pimh_session', session.token, { maxAge: 30 * 24 * 60 * 60 });
-    sendJson(res, 200, { user: q.publicUser(user), redirect: auth.ROLE_HOME[user.role] });
+    const target = (user.email_verified === 0 && user.role !== 'SUPER_ADMIN') ? '/verify-pending' : auth.ROLE_HOME[user.role];
+    sendJson(res, 200, { user: q.publicUser(user), redirect: target });
   });
 
   router.post('/api/auth/logout', async (req, res) => {
@@ -103,7 +110,10 @@ module.exports = function register(router) {
       token = crypto.randomBytes(16).toString('hex');
       db.prepare('UPDATE users SET verification_token=? WHERE id=?').run(token, user.id);
     }
-    const verifyUrl = `${req.headers.origin || 'http://localhost:3000'}/verify-email?token=${token}`;
+    const proto = req.headers['x-forwarded-proto'] || 'http';
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
+    const origin = req.headers.origin || `${proto}://${host}`;
+    const verifyUrl = `${origin}/verify-email?token=${token}`;
     mailer.sendEmail({
       to: user.email,
       subject: 'Verify your PIMH Academy Account',
@@ -219,7 +229,10 @@ module.exports = function register(router) {
     logActivity(user.id, `Added ${role.toLowerCase()} account: ${name}`);
     
     // Send Teacher Welcome Setup Email
-    const verifyUrl = `${req.headers.origin || 'http://localhost:3000'}/setup-account?token=${token}`;
+    const proto = req.headers['x-forwarded-proto'] || 'http';
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
+    const origin = req.headers.origin || `${proto}://${host}`;
+    const verifyUrl = `${origin}/setup-account?token=${token}`;
     mailer.sendEmail({
       to: email,
       subject: `Welcome to PIMH Academy, ${name}`,
@@ -305,8 +318,15 @@ module.exports = function register(router) {
       const placeholders = enrolledIds.map(() => '?').join(',');
       allCourses = db.prepare(`SELECT * FROM courses WHERE status='Active' AND id NOT IN (${placeholders}) ORDER BY name`).all(...enrolledIds);
     }
+    const pendingRows = db.prepare(`
+      SELECT e.id, e.course_id as courseId, e.status, e.payment_receipt_url as receiptUrl, e.created_at as createdAt, c.name as courseName, c.description
+      FROM enrollments e
+      JOIN courses c ON c.id = e.course_id
+      WHERE e.student_id = ? AND e.status = 'Pending'
+      ORDER BY e.created_at DESC
+    `).all(user.id);
     const out = allCourses.map(c => ({ id: c.id, name: c.name, description: c.description }));
-    sendJson(res, 200, { catalog: out });
+    sendJson(res, 200, { catalog: out, pending: pendingRows });
   });
 
   router.post('/api/courses', async (req, res) => {
@@ -425,6 +445,7 @@ module.exports = function register(router) {
     const courseId = row.course_id;
     const studentId = row.student_id;
     const course = db.prepare('SELECT * FROM courses WHERE id=?').get(courseId);
+    const student = db.prepare('SELECT * FROM users WHERE id=?').get(studentId);
     
     // seed module_progress rows
     const mods = q.courseModules(courseId);
@@ -435,6 +456,15 @@ module.exports = function register(router) {
 
     logActivity(user.id, `Approved enrollment for student ID ${studentId} in ${course.name}`);
     notify(studentId, `Your enrollment request for ${course.name} has been approved.`);
+    if (student && student.email) {
+      mailer.sendEmail({
+        to: student.email,
+        subject: `Enrollment Approved: ${course.name} — PIMH Academy`,
+        html: `<p>Hello ${student.name},</p>
+               <p>Your payment receipt for <b>${course.name}</b> has been verified and approved by Admissions!</p>
+               <p>Your Student Dashboard, course modules, materials, and assessments are now unlocked.</p>`
+      }).catch(err => console.error('[MAILER] Approval email error:', err.message));
+    }
     sendJson(res, 200, { ok: true });
   });
 
@@ -443,9 +473,18 @@ module.exports = function register(router) {
     const row = db.prepare('SELECT * FROM enrollments WHERE id=?').get(req.params.id);
     if (!row) return sendJson(res, 404, { error: 'Not found' });
     const course = db.prepare('SELECT * FROM courses WHERE id=?').get(row.course_id);
+    const student = db.prepare('SELECT * FROM users WHERE id=?').get(row.student_id);
     db.prepare(`DELETE FROM enrollments WHERE id=?`).run(row.id);
     logActivity(user.id, `Rejected enrollment for student ID ${row.student_id}`);
     notify(row.student_id, `Your enrollment request for ${course.name} was not approved. Please check your payment details.`);
+    if (student && student.email) {
+      mailer.sendEmail({
+        to: student.email,
+        subject: `Update on Your Enrollment Request: ${course.name} — PIMH Academy`,
+        html: `<p>Hello ${student.name},</p>
+               <p>Your payment receipt for <b>${course.name}</b> could not be verified. Please log in to your dashboard and upload a clear copy of your payment receipt.</p>`
+      }).catch(err => console.error('[MAILER] Rejection email error:', err.message));
+    }
     sendJson(res, 200, { ok: true });
   });
 
@@ -962,6 +1001,14 @@ module.exports = function register(router) {
     sendJson(res, 200, { ok: true });
   });
 
+  router.post('/api/admin/reminders/run', async (req, res) => {
+    const user = requireRole(req, res, ['SUPER_ADMIN', 'ADMIN']); if (!user) return;
+    const scheduler = require('../lib/scheduler');
+    const result = await scheduler.runDeadlineReminders();
+    logActivity(user.id, `Triggered deadline reminders (${result.remindersSent} sent across ${result.checkedAssessments} upcoming assessments)`);
+    sendJson(res, 200, { ok: true, ...result });
+  });
+
   // ---------------- DASHBOARD AGGREGATES ----------------
   router.get('/api/dashboard/student', async (req, res) => {
     const user = requireRole(req, res, ['STUDENT']); if (!user) return;
@@ -1024,16 +1071,34 @@ module.exports = function register(router) {
       ORDER BY a.due_date ASC LIMIT 5`).all(user.id);
     const notifs = db.prepare('SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 5').all(user.id);
 
+    const pendingEnrollments = db.prepare(`
+      SELECT e.id, e.course_id as courseId, e.status, e.payment_receipt_url as receiptUrl, e.created_at as createdAt, c.name as courseName, c.description
+      FROM enrollments e
+      JOIN courses c ON c.id = e.course_id
+      WHERE e.student_id = ? AND e.status = 'Pending'
+      ORDER BY e.created_at DESC
+    `).all(user.id);
+
+    const enrolledOrPendingIds = db.prepare(`SELECT course_id FROM enrollments WHERE student_id=? AND status IN ('Active', 'Pending')`).all(user.id).map(r => r.course_id);
+    let availableCourses = db.prepare(`SELECT id, name, description FROM courses WHERE status='Active' ORDER BY name`).all();
+    if (enrolledOrPendingIds.length) {
+      const ph = enrolledOrPendingIds.map(() => '?').join(',');
+      availableCourses = db.prepare(`SELECT id, name, description FROM courses WHERE status='Active' AND id NOT IN (${ph}) ORDER BY name`).all(...enrolledOrPendingIds);
+    }
+
     sendJson(res, 200, {
       name: user.name,
+      isLocked: courses.length === 0,
       overallProgress: overall,
       courses: courseProgress,
+      pendingEnrollments,
+      availableCourses,
       stats: {
         activeCourses: courses.length,
         completedModules,
         totalModules,
-        learningStreak: 5,
-        avgScore: avgScore != null ? avgScore : (overall > 0 ? overall : 88),
+        learningStreak: courses.length > 0 ? 5 : 0,
+        avgScore: avgScore != null ? avgScore : (courses.length > 0 && overall > 0 ? overall : null),
       },
       resumeModule,
       recentGrades: submissions.map((s) => ({
@@ -1168,11 +1233,11 @@ module.exports = function register(router) {
       const profile = await google.exchangeCode(code, redirectUri);
       let user = db.prepare('SELECT * FROM users WHERE google_id = ? OR email = ?').get(profile.sub, profile.email);
       if (!user) {
-        const result = db.prepare(`INSERT INTO users (name,email,google_id,role,status) VALUES (?,?,?,'STUDENT','ACTIVE')`)
+        const result = db.prepare(`INSERT INTO users (name,email,google_id,role,status,email_verified) VALUES (?,?,?,'STUDENT','ACTIVE',1)`)
           .run(profile.name || profile.email, profile.email, profile.sub);
         user = db.prepare('SELECT * FROM users WHERE id=?').get(result.lastInsertRowid);
-      } else if (!user.google_id) {
-        db.prepare('UPDATE users SET google_id=? WHERE id=?').run(profile.sub, user.id);
+      } else {
+        db.prepare('UPDATE users SET google_id=?, email_verified=1 WHERE id=?').run(profile.sub, user.id);
       }
       const session = auth.createSession(user.id);
       auth.setCookie(res, 'pimh_session', session.token, { maxAge: 30 * 24 * 60 * 60 });
