@@ -1,80 +1,144 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="1">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PIMH Academy — Postgraduate Diploma in Educational Counseling</title>
+<title>PIMH Academy — HEC Approved Diplomas in Educational &amp; Addiction Psychology</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#16232A; --ink-soft:#33454C; --paper:#F2EFE6; --paper-deep:#E8E3D3;
+    --ink:#16232A; --ink-soft:#33454C; --paper:#F2EFE6; --paper-deep:#E8E3D3; --card-bg:#FFFFFF;
     --pulse:#3E6B82; --pulse-soft:#9FBBC9; --pulse-tint:#E4ECEF; --moss:#4F6F52; --moss-soft:#8AA88C;
     --amber:#C9962E; --amber-soft:#E8CE9B; --line:#D9D3C0; --cream:#F2EFE6;
+    --hero-bg:#16232A; --hero-text:#F2EFE6;
     --font-display:'Newsreader', Georgia, 'Times New Roman', serif;
     --font-body:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --radius:4px;
   }
+
+  /* Theme 2: Harvard / HEC Royal Academic */
+  html[data-theme="2"]{
+    --ink:#0F233C; --ink-soft:#3B4E68; --paper:#F8FAFC; --paper-deep:#EEF2F6; --card-bg:#FFFFFF;
+    --pulse:#1D4ED8; --pulse-soft:#93C5FD; --pulse-tint:#EFF6FF; --moss:#15803D;
+    --amber:#B45309; --amber-soft:#FDE68A; --line:#CBD5E1; --cream:#FFFFFF;
+    --hero-bg:#0A192F; --hero-text:#F8FAFC; --radius:8px;
+  }
+
+  /* Theme 3: Modern EdTech Cohort (Maven / Coursera Style) */
+  html[data-theme="3"]{
+    --ink:#111827; --ink-soft:#4B5563; --paper:#FFFFFF; --paper-deep:#F3F4F6; --card-bg:#FFFFFF;
+    --pulse:#0D9488; --pulse-soft:#5EEAD4; --pulse-tint:#F0FDFA; --moss:#059669;
+    --amber:#F59E0B; --amber-soft:#FDE68A; --line:#E5E7EB; --cream:#F9FAFB;
+    --hero-bg:#0F172A; --hero-text:#F9FAFB; --radius:14px;
+  }
+
+  /* Theme 4: Executive Dark & Gold Crest (MasterClass Style) */
+  html[data-theme="4"]{
+    --ink:#F3F4F6; --ink-soft:#9CA3AF; --paper:#0B1116; --paper-deep:#121B24; --card-bg:#16212C;
+    --pulse:#D4AF37; --pulse-soft:#8A7322; --pulse-tint:#1F2937; --moss:#34D399;
+    --amber:#D4AF37; --amber-soft:#FDE68A; --line:#243242; --cream:#F9FAFB;
+    --hero-bg:#070B0E; --hero-text:#F9FAFB; --radius:10px;
+  }
+
   *{box-sizing:border-box; margin:0; padding:0;}
   html{scroll-behavior:smooth;}
-  body{background:var(--paper); color:var(--ink); font-family:var(--font-body); font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:hidden;}
+  body{background:var(--paper); color:var(--ink); font-family:var(--font-body); font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:hidden; padding-top:46px; transition:background .3s ease, color .3s ease;}
   img{max-width:100%; display:block;}
   a{color:inherit; text-decoration:none;}
   .wrap{max-width:1160px; margin:0 auto; padding:0 32px;}
   h1,h2,h3{font-family:var(--font-display); font-weight:600; letter-spacing:-0.01em;}
-  .nav{position:sticky; top:0; z-index:100; background:rgba(242,239,230,0.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--line);}
+
+  /* Live Landing Page Theme Switcher Bar */
+  .theme-switcher{position:fixed; top:0; left:0; right:0; height:46px; z-index:999; background:#0F172A; color:#F8FAFC; border-bottom:1px solid rgba(255,255,255,0.12); display:flex; align-items:center; justify-content:center; gap:10px; padding:0 16px; font-size:0.82rem;}
+  .theme-switcher-label{color:#94A3B8; font-weight:500; margin-right:4px; white-space:nowrap;}
+  .theme-btn{background:rgba(255,255,255,0.07); color:#E2E8F0; border:1px solid rgba(255,255,255,0.14); padding:5px 12px; border-radius:20px; cursor:pointer; font-size:0.78rem; font-weight:500; transition:all .2s; white-space:nowrap;}
+  .theme-btn:hover{background:rgba(255,255,255,0.15); color:#FFF;}
+  .theme-btn.active{background:#22C55E; color:#052E16; border-color:#22C55E; font-weight:600;}
+
+  .nav{position:sticky; top:46px; z-index:100; background:color-mix(in srgb, var(--paper) 92%, transparent); backdrop-filter:blur(8px); border-bottom:1px solid var(--line);}
   .nav .wrap{display:flex; align-items:center; justify-content:space-between; height:76px;}
   .nav-mark{display:inline-flex; align-items:center; gap:12px; font-family:var(--font-display); font-weight:600; font-size:1.28rem; color:var(--ink); text-decoration:none; vertical-align:middle; line-height:1;}
   .nav-logo-img{height:42px; width:auto; max-width:44px; display:block; object-fit:contain; flex-shrink:0;}
   .nav-links{display:flex; align-items:center; gap:36px; font-size:0.95rem;}
-  .nav-links a{opacity:0.8; transition:opacity .2s;}
+  .nav-links a{opacity:0.85; transition:opacity .2s;}
   .nav-links a:hover{opacity:1;}
-  .nav-cta{background:var(--ink); color:var(--cream); padding:10px 20px; border-radius:2px; font-size:0.88rem; font-weight:500; transition:background .2s;}
-  .nav-cta:hover{background:var(--pulse);}
+  .nav-cta{background:var(--amber); color:#111827; padding:10px 20px; border-radius:var(--radius); font-size:0.88rem; font-weight:600; transition:all .2s;}
+  .nav-cta:hover{opacity:0.92; transform:translateY(-1px);}
   .nav-toggle{display:none; background:none; border:none; cursor:pointer; padding:8px;}
   .nav-toggle span{display:block; width:22px; height:2px; background:var(--ink); margin:5px 0;}
-  .hero{background:var(--ink); color:var(--cream); padding:90px 0 100px; position:relative; overflow:hidden;}
+
+  .hero{background:var(--hero-bg); color:var(--hero-text); padding:90px 0 100px; position:relative; overflow:hidden;}
   .hero .wrap{display:grid; grid-template-columns:1.35fr 1fr; gap:56px; align-items:center;}
+  .hero-collab-badge{display:inline-flex; align-items:center; gap:10px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.16); padding:7px 14px; border-radius:30px; font-size:0.78rem; color:#E2E8F0; margin-bottom:20px; letter-spacing:0.02em;}
+  .hero-collab-badge strong{color:var(--amber);}
   .hero h1{font-size:clamp(2.5rem, 4.3vw, 3.5rem); line-height:1.1; margin-bottom:24px; max-width:15ch; font-weight:600;}
   .hero p.lead{font-size:1.12rem; color:#D6D2C4; max-width:46ch; margin-bottom:34px;}
   .hero-ctas{display:flex; gap:16px; flex-wrap:wrap; margin-bottom:50px;}
-  .btn{display:inline-block; padding:14px 26px; font-size:0.95rem; font-weight:500; border-radius:2px; transition:all .2s; border:1px solid transparent; cursor:pointer;}
-  .btn-primary{background:var(--amber); color:var(--ink);}
-  .btn-primary:hover{background:#D9A93F;}
-  .btn-outline{border-color:rgba(242,239,230,0.35); color:var(--cream); background:none;}
-  .btn-outline:hover{border-color:var(--cream);}
+  .btn{display:inline-block; padding:14px 26px; font-size:0.95rem; font-weight:600; border-radius:var(--radius); transition:all .2s; border:1px solid transparent; cursor:pointer;}
+  .btn-primary{background:var(--amber); color:#111827;}
+  .btn-primary:hover{background:#D9A93F; transform:translateY(-1px);}
+  .btn-outline{border-color:rgba(242,239,230,0.35); color:var(--hero-text); background:none;}
+  .btn-outline:hover{border-color:var(--hero-text);}
   .stat-row{display:flex; gap:0; border-top:1px solid rgba(242,239,230,0.16); max-width:520px;}
   .stat{flex:1; padding:20px 24px 0 0;}
   .stat:not(:last-child){border-right:1px solid rgba(242,239,230,0.16); margin-right:24px;}
-  .stat .num{font-family:var(--font-display); font-size:1.7rem; color:var(--cream); display:block;}
+  .stat .num{font-family:var(--font-display); font-size:1.7rem; color:var(--hero-text); display:block;}
   .stat .label{font-size:0.82rem; color:#B7B2A3; margin-top:2px;}
-  .hero-card{background:var(--paper); border-radius:6px; padding:30px 26px; transform:rotate(-1.2deg); box-shadow:0 24px 48px rgba(0,0,0,0.28);}
-  .hero-card .tag{font-size:0.78rem; color:var(--pulse); margin-bottom:16px; font-weight:500;}
+  .hero-card{background:var(--card-bg); color:var(--ink); border-radius:var(--radius); padding:30px 26px; transform:rotate(-1.2deg); box-shadow:0 24px 48px rgba(0,0,0,0.28); border:1px solid var(--line);}
+  html[data-theme="2"] .hero-card, html[data-theme="3"] .hero-card{transform:none;}
+  .hero-card .tag{font-size:0.78rem; color:var(--pulse); margin-bottom:16px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;}
   .hero-card svg{width:100%; height:auto; display:block; margin-bottom:14px;}
   .hero-card p{font-size:0.88rem; color:var(--ink-soft); line-height:1.55;}
-  .trust{background:var(--ink); padding:22px 0; border-top:1px solid rgba(242,239,230,0.1); border-bottom:1px solid rgba(242,239,230,0.1);}
-  .trust .wrap{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px 32px;}
-  .trust-item{display:flex; align-items:center; gap:10px; color:#C7C3B5; font-size:0.88rem;}
+
+  /* Trust Bar with Official HEC Seal */
+  .trust{background:var(--hero-bg); padding:22px 0; border-top:1px solid rgba(242,239,230,0.1); border-bottom:1px solid rgba(242,239,230,0.1);}
+  .trust .wrap{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px 28px;}
+  .trust-item{display:flex; align-items:center; gap:10px; color:#E2E8F0; font-size:0.88rem; font-weight:500;}
   .trust-item svg{flex-shrink:0;}
+  .hec-seal-badge{display:inline-flex; align-items:center; gap:10px; background:rgba(34,197,94,0.14); border:1px solid rgba(34,197,94,0.4); color:#86EFAC; padding:6px 14px; border-radius:30px; font-size:0.82rem; font-weight:600;}
+
   .section{padding:104px 0;}
   .section-alt{background:var(--paper-deep);}
-  .section-head{max-width:640px; margin-bottom:56px;}
+  .section-head{max-width:680px; margin-bottom:56px;}
   .section-head h2{font-size:clamp(1.8rem, 3vw, 2.35rem); margin-bottom:16px;}
-  .section-head p{color:var(--ink-soft); font-size:1.05rem; opacity:0.88;}
-  .program{display:grid; grid-template-columns:280px 1fr; gap:48px; padding:44px 0; border-top:1px solid var(--line);}
+  .section-head p{color:var(--ink-soft); font-size:1.05rem; opacity:0.92;}
+
+  /* Programs Section */
+  .program{display:grid; grid-template-columns:290px 1fr; gap:48px; padding:48px 0; border-top:1px solid var(--line);}
+  html[data-theme="2"] .program, html[data-theme="3"] .program, html[data-theme="4"] .program{
+    background:var(--card-bg); padding:40px; border:1px solid var(--line); border-radius:var(--radius); margin-bottom:28px; box-shadow:0 8px 24px rgba(0,0,0,0.04);
+  }
   .program:last-child{border-bottom:1px solid var(--line);}
-  .program-meta dl{display:flex; flex-direction:column; gap:14px;}
-  .program-meta dt{font-size:0.82rem; color:var(--pulse); margin-bottom:2px;}
-  .program-meta dd{font-size:0.98rem; font-weight:500;}
-  .program-body h3{font-size:1.5rem; margin-bottom:14px;}
-  .program-body p{color:var(--ink-soft); margin-bottom:20px; max-width:62ch;}
-  .program-tag{display:inline-block; font-size:0.78rem; color:var(--pulse); border:1px solid var(--pulse-soft); padding:4px 12px; border-radius:20px; margin-bottom:14px;}
-  .link-more{color:var(--ink); border-bottom:1px solid var(--amber); padding-bottom:2px; font-weight:500; cursor:pointer; background:none; border-top:none; border-left:none; border-right:none; font-size:1rem; font-family:var(--font-body);}
+  .program-meta dl{display:flex; flex-direction:column; gap:16px;}
+  .program-meta dt{font-size:0.78rem; color:var(--pulse); text-transform:uppercase; letter-spacing:0.05em; font-weight:600; margin-bottom:2px;}
+  .program-meta dd{font-size:1rem; font-weight:600;}
+  .program-fee-box{margin-top:8px; padding:14px 16px; background:color-mix(in srgb, var(--amber) 14%, transparent); border-left:3px solid var(--amber); border-radius:var(--radius);}
+  .program-fee-box .fee-label{font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); display:block;}
+  .program-fee-box .fee-amount{font-family:var(--font-display); font-size:1.45rem; font-weight:700; color:var(--ink);}
+  .program-body h3{font-size:1.6rem; margin-bottom:12px;}
+  .program-body p{color:var(--ink-soft); margin-bottom:20px; max-width:65ch;}
+  .program-badges{display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;}
+  .program-tag{display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; color:var(--pulse); border:1px solid var(--pulse-soft); padding:4px 12px; border-radius:20px; font-weight:600;}
+  .program-tag.hec{background:rgba(22,163,74,0.1); border-color:rgba(22,163,74,0.35); color:#15803D;}
+  html[data-theme="4"] .program-tag.hec{color:#4ADE80;}
+
+  .module-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px 20px; margin:20px 0 24px; padding:20px; background:color-mix(in srgb, var(--ink) 3%, transparent); border:1px solid var(--line); border-radius:var(--radius);}
+  .module-item{display:flex; align-items:flex-start; gap:10px; font-size:0.9rem; color:var(--ink);}
+  .module-num{font-size:0.74rem; font-weight:700; color:var(--pulse); background:color-mix(in srgb, var(--pulse) 12%, transparent); padding:2px 8px; border-radius:4px; white-space:nowrap; margin-top:2px;}
+  .exclusive-box{font-size:0.88rem; color:var(--ink-soft); margin-bottom:24px; padding:12px 16px; border:1px dashed var(--line); border-radius:var(--radius);}
+  .exclusive-box strong{color:var(--ink);}
+
+  .link-more{display:inline-flex; align-items:center; gap:8px; background:var(--amber); color:#111827; padding:12px 24px; border-radius:var(--radius); font-weight:600; cursor:pointer; border:none; font-size:0.95rem; font-family:var(--font-body); transition:all .2s; text-decoration:none;}
+  .link-more:hover{background:#D9A93F; transform:translateY(-1px);}
+
   .why-grid{display:grid; grid-template-columns:1fr 1fr; gap:40px 64px;}
   .why-item{border-top:1px solid var(--line); padding-top:20px;}
-  .why-tag{font-size:0.8rem; color:var(--pulse); font-weight:500; margin-bottom:10px; display:block;}
+  .why-tag{font-size:0.8rem; color:var(--pulse); font-weight:600; margin-bottom:10px; display:block; text-transform:uppercase; letter-spacing:0.04em;}
   .why-item h3{font-size:1.15rem; font-weight:600; margin-bottom:10px; font-family:var(--font-body);}
   .why-item p{color:var(--ink-soft); font-size:0.98rem;}
+
   .journey{position:relative; padding-top:20px;}
   .journey-line{position:absolute; top:26px; left:0; right:0; height:1px; background:var(--line);}
   .journey-steps{display:grid; grid-template-columns:repeat(4,1fr); gap:24px; position:relative;}
@@ -82,27 +146,21 @@
   .journey-step:nth-child(4) .step-tick{background:var(--amber);}
   .journey-step h4{font-size:1rem; margin-bottom:8px; font-family:var(--font-body); font-weight:600;}
   .journey-step p{font-size:0.9rem; color:var(--ink-soft);}
+
   .strip{background:var(--paper); padding:0 0 40px;}
   .strip .wrap{display:flex; align-items:center; gap:48px;}
   .strip-art{flex:0 0 260px;}
   .strip-text h3{font-size:1.3rem; margin-bottom:10px;}
   .strip-text p{color:var(--ink-soft); max-width:52ch;}
-  .faculty-list{display:grid; grid-template-columns:repeat(3,1fr); gap:40px;}
-  .faculty-card{border-top:1px solid var(--line); padding-top:24px;}
-  .faculty-avatar-img{width:76px; height:76px; border-radius:50%; object-fit:cover; margin-bottom:18px; border:2px solid var(--pulse-soft); box-shadow:0 4px 14px rgba(0,0,0,0.12);}
-  .monogram{width:58px; height:58px; border-radius:56% 44% 46% 54% / 54% 46% 58% 42%; background:linear-gradient(135deg, var(--pulse), var(--moss)); color:var(--cream); display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:1.12rem; margin-bottom:18px;}
-  .faculty-card:nth-child(2) .monogram{background:linear-gradient(135deg, var(--amber), var(--pulse));}
-  .faculty-card:nth-child(3) .monogram{background:linear-gradient(135deg, var(--moss), var(--amber));}
-  .faculty-card h3{font-size:1.1rem; font-weight:600; font-family:var(--font-body); margin-bottom:4px;}
-  .faculty-card .role{font-size:0.88rem; color:var(--pulse); margin-bottom:12px;}
-  .faculty-card p.bio{font-size:0.92rem; color:var(--ink-soft);}
-  .testi-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:32px;}
-  .testi-card{background:var(--paper); border:1px solid var(--line); padding:28px; border-radius:2px;}
-  .testi-quote{font-size:1rem; color:var(--ink); margin-bottom:20px; line-height:1.65; font-family:var(--font-display); font-style:italic; font-weight:500;}
-  .testi-who{display:flex; align-items:center; gap:12px;}
-  .testi-avatar{width:38px; height:38px; border-radius:52% 48% 45% 55% / 55% 45% 58% 42%; background:linear-gradient(135deg, var(--pulse), var(--moss-soft)); display:flex; align-items:center; justify-content:center; color:var(--cream); font-family:var(--font-display); font-size:0.85rem; flex-shrink:0;}
-  .testi-name{font-size:0.9rem; font-weight:600;}
-  .testi-role{font-size:0.8rem; color:var(--ink-soft);}
+
+  /* 6-Member Faculty Grid (Photo, Name & Designation Only — No Descriptions) */
+  .faculty-list{display:grid; grid-template-columns:repeat(3,1fr); gap:32px;}
+  .faculty-card{background:var(--card-bg); border:1px solid var(--line); border-radius:var(--radius); padding:28px 24px; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; transition:transform .25s ease, box-shadow .25s ease;}
+  .faculty-card:hover{transform:translateY(-4px); box-shadow:0 16px 32px rgba(0,0,0,0.08);}
+  .faculty-avatar-img{width:116px; height:116px; border-radius:50%; object-fit:cover; object-position:top center; margin-bottom:18px; border:3px solid var(--amber); box-shadow:0 6px 18px rgba(0,0,0,0.14);}
+  .faculty-card h3{font-size:1.14rem; font-weight:600; font-family:var(--font-body); margin-bottom:6px; color:var(--ink);}
+  .faculty-card .role{font-size:0.9rem; color:var(--pulse); font-weight:500;}
+
   .faq-list{max-width:760px;}
   .faq-item{border-bottom:1px solid var(--line);}
   .faq-q{width:100%; text-align:left; background:none; border:none; cursor:pointer; padding:22px 0; font-family:var(--font-body); font-size:1.02rem; font-weight:500; color:var(--ink); display:flex; justify-content:space-between; align-items:center; gap:20px;}
@@ -110,98 +168,114 @@
   .faq-item.open .faq-q .plus{transform:rotate(45deg);}
   .faq-a{max-height:0; overflow:hidden; transition:max-height .25s ease;}
   .faq-a p{color:var(--ink-soft); padding-bottom:22px; max-width:64ch; font-size:0.96rem;}
-  .cta-banner{background:var(--ink); color:var(--cream); padding:96px 0; text-align:center;}
+
+  .cta-banner{background:var(--hero-bg); color:var(--hero-text); padding:96px 0; text-align:center;}
   .cta-banner h2{font-size:clamp(1.8rem,3.4vw,2.55rem); max-width:20ch; margin:0 auto 24px;}
   .cta-banner p{color:#C7C3B5; max-width:52ch; margin:0 auto 36px; font-size:1.05rem;}
   .cta-actions{display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-bottom:32px;}
   .cta-note{margin-top:36px; font-size:0.92rem; color:#B7B2A3; line-height:1.6;}
+
   footer{background:var(--paper-deep); padding:64px 0 32px; border-top:1px solid var(--line);}
   .footer-grid{display:grid; grid-template-columns:1.4fr 1fr 1fr 1.2fr; gap:40px; margin-bottom:56px;}
-  .footer-brand p{color:var(--ink-soft); font-size:0.92rem; margin-top:14px; max-width:32ch;}
+  .footer-brand p{color:var(--ink-soft); font-size:0.92rem; margin-top:14px; max-width:34ch;}
   .footer-col h4{font-size:0.88rem; margin-bottom:16px; font-weight:600;}
   .footer-col ul{list-style:none; display:flex; flex-direction:column; gap:10px;}
   .footer-col a, .footer-col li{font-size:0.9rem; color:var(--ink-soft);}
   .footer-col a:hover{color:var(--ink);}
   .footer-bottom{border-top:1px solid var(--line); padding-top:24px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; font-size:0.82rem; color:var(--ink-soft);}
   .footer-bottom .legal a{margin-left:20px;}
-  
-  /* Catchy Floating WhatsApp Button */
-  .whatsapp-btn{position:fixed; right:28px; bottom:28px; z-index:95; width:62px; height:62px; border-radius:50%; background:linear-gradient(135deg, #25D366 0%, #128C7E 100%); display:flex; align-items:center; justify-content:center; box-shadow:0 8px 28px rgba(37,211,102,0.45); transition:all .3s cubic-bezier(0.16,1,0.3,1); border:none; cursor:pointer;}
-  .whatsapp-btn::after{content:''; position:absolute; inset:-4px; border-radius:50%; border:2px solid #25D366; opacity:0; animation:waPulse 2.4s infinite ease-out;}
-  .whatsapp-btn:hover{transform:scale(1.08) translateY(-2px); box-shadow:0 12px 36px rgba(37,211,102,0.6);}
-  .whatsapp-btn svg{width:32px; height:32px;}
 
-  @keyframes waPulse {
-    0% { transform:scale(0.92); opacity:0.85; }
-    100% { transform:scale(1.38); opacity:0; }
-  }
+  /* ==========================================================================
+     CraftedMinds-Style Floating WhatsApp Button + "Chat with us" Pill & Popup
+     ========================================================================== */
+  .wa-launcher-wrap{position:fixed; right:26px; bottom:26px; z-index:95; display:flex; flex-direction:column; align-items:flex-end; gap:10px;}
+  .wa-chat-pill{background:#18191C; color:#FFFFFF; font-size:0.84rem; font-weight:600; padding:8px 16px; border-radius:20px; box-shadow:0 6px 20px rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); cursor:pointer; transition:all .2s ease; white-space:nowrap;}
+  .wa-chat-pill:hover{transform:translateY(-2px); background:#23252A;}
+  .wa-launcher-wrap.is-open .wa-chat-pill{opacity:0; pointer-events:none; transform:translateY(6px);}
 
-  /* Ultra-Premium Glassmorphic WhatsApp Chat Popup Window */
-  .wa-popup{position:fixed; right:28px; bottom:104px; z-index:96; width:360px; background:linear-gradient(180deg, #16222F 0%, #0F172A 100%); border-radius:20px; box-shadow:0 28px 64px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.12); overflow:hidden; opacity:0; transform:translateY(18px) scale(0.94); pointer-events:none; transition:opacity .25s cubic-bezier(0.16, 1, 0.3, 1), transform .25s cubic-bezier(0.16, 1, 0.3, 1); border:1px solid rgba(255,255,255,0.12); backdrop-filter:blur(20px);}
+  .whatsapp-btn{width:60px; height:60px; border-radius:50%; background:#22C55E; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 28px rgba(34,197,94,0.45); transition:all .25s ease; border:none; cursor:pointer; position:relative;}
+  .whatsapp-btn:hover{transform:scale(1.06); background:#16A34A;}
+  .whatsapp-btn .icon-chat, .whatsapp-btn .icon-close{width:28px; height:28px; transition:all .2s ease;}
+  .whatsapp-btn .icon-close{display:none;}
+  .wa-launcher-wrap.is-open .whatsapp-btn .icon-chat{display:none;}
+  .wa-launcher-wrap.is-open .whatsapp-btn .icon-close{display:block;}
+
+  .wa-popup{position:fixed; right:26px; bottom:100px; z-index:96; width:360px; background:#18191C; border-radius:18px; box-shadow:0 28px 64px rgba(0,0,0,0.55); overflow:hidden; opacity:0; transform:translateY(16px) scale(0.95); pointer-events:none; transition:opacity .24s cubic-bezier(0.16, 1, 0.3, 1), transform .24s cubic-bezier(0.16, 1, 0.3, 1); border:1px solid rgba(255,255,255,0.08); font-family:var(--font-body);}
   .wa-popup.open{opacity:1; transform:translateY(0) scale(1); pointer-events:auto;}
-  .wa-popup-head{background:rgba(255,255,255,0.03); border-bottom:1px solid rgba(255,255,255,0.08); color:#F8FAFC; padding:20px 22px; display:flex; align-items:center; gap:14px; position:relative;}
-  .wa-popup-avatar{width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02)); padding:3px; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid rgba(197,160,89,0.35); box-shadow:0 4px 14px rgba(0,0,0,0.3);}
-  .wa-popup-avatar img{width:100%; height:100%; object-fit:contain; border-radius:50%;}
-  .wa-popup-head strong{display:block; font-size:1.02rem; font-weight:600; color:#F8FAFC; letter-spacing:-0.01em;}
-  .wa-popup-head span{display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; color:#94A3B8; margin-top:3px;}
-  .wa-online-dot{width:8px; height:8px; border-radius:50%; background:#25D366; box-shadow:0 0 10px #25D366;}
-  .wa-popup-close{margin-left:auto; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.08); color:#94A3B8; width:30px; height:30px; border-radius:50%; font-size:1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s ease;}
-  .wa-popup-close:hover{background:rgba(255,255,255,0.2); color:#FFF;}
-  .wa-popup-body{padding:22px 20px; background:radial-gradient(circle at 50% 0%, rgba(37,211,102,0.05), transparent 70%);}
-  .wa-bubble-wrap{margin-bottom:20px; display:flex; flex-direction:column; gap:6px;}
-  .wa-bubble{background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); color:#F1F5F9; padding:16px 18px; border-radius:4px 18px 18px 18px; font-size:0.96rem; line-height:1.6; font-weight:400; box-shadow:0 6px 20px rgba(0,0,0,0.2); backdrop-filter:blur(8px);}
-  .wa-bubble-meta{display:flex; align-items:center; justify-content:space-between; font-size:0.73rem; color:#64748B; padding:0 4px;}
-  .wa-popup-body .btn-primary{display:flex; align-items:center; justify-content:center; gap:10px; width:100%; background:linear-gradient(135deg, #25D366 0%, #128C7E 100%); color:#FFF; font-weight:600; padding:15px 22px; border-radius:12px; font-size:0.98rem; box-shadow:0 8px 24px rgba(37,211,102,0.38); transition:all .25s ease; border:none; text-decoration:none;}
-  .wa-popup-body .btn-primary:hover{transform:translateY(-1px); box-shadow:0 12px 30px rgba(37,211,102,0.52);}
-  .wa-secure-tag{display:flex; align-items:center; justify-content:center; gap:6px; font-size:0.74rem; color:#64748B; margin-top:14px; text-align:center;}
+
+  /* Bright Green Header */
+  .wa-popup-head{background:#22C55E; color:#FFFFFF; padding:16px 18px; display:flex; align-items:center; gap:12px;}
+  .wa-popup-avatar{width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.22); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; padding:4px;}
+  .wa-popup-avatar img{width:100%; height:100%; object-fit:contain; border-radius:50%; background:#FFF;}
+  .wa-popup-head-info strong{display:block; font-size:1rem; font-weight:700; color:#FFFFFF; line-height:1.2;}
+  .wa-popup-head-info span{display:inline-flex; align-items:center; gap:6px; font-size:0.76rem; color:rgba(255,255,255,0.92); margin-top:2px;}
+  .wa-online-dot{width:8px; height:8px; border-radius:50%; background:#A7F3D0; box-shadow:0 0 8px #FFFFFF;}
+  .wa-popup-close{margin-left:auto; background:none; border:none; color:#FFFFFF; font-size:1.15rem; cursor:pointer; width:28px; height:28px; display:flex; align-items:center; justify-content:center; opacity:0.9;}
+  .wa-popup-close:hover{opacity:1;}
+
+  /* Dark Chat Body */
+  .wa-popup-body{padding:18px 16px 14px; background:#18191C;}
+  .wa-bubble{background:#2A2B32; color:#F1F5F9; padding:14px 16px; border-radius:14px; font-size:0.9rem; line-height:1.5; max-width:90%; margin-bottom:16px; box-shadow:0 4px 12px rgba(0,0,0,0.2);}
+  .wa-bubble-time{display:block; font-size:0.7rem; color:#94A3B8; margin-top:6px;}
+
+  .wa-options{display:flex; flex-direction:column; gap:9px; margin-bottom:16px;}
+  .wa-option-btn{width:100%; text-align:left; background:transparent; color:#E2E8F0; border:1px solid #15803D; padding:10px 16px; border-radius:24px; font-size:0.83rem; font-family:var(--font-body); cursor:pointer; transition:all .18s ease;}
+  .wa-option-btn:hover{background:rgba(34,197,94,0.14); border-color:#22C55E; color:#FFFFFF;}
+
+  /* Bottom Type a Message Input Bar */
+  .wa-input-row{display:flex; align-items:center; gap:8px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.07);}
+  .wa-input{flex:1; background:#1F2026; border:1px solid #15803D; border-radius:24px; padding:10px 16px; color:#FFFFFF; font-size:0.86rem; font-family:var(--font-body); outline:none;}
+  .wa-input::placeholder{color:#64748B;}
+  .wa-input:focus{border-color:#22C55E;}
+  .wa-send-btn{width:38px; height:38px; border-radius:50%; background:#14532D; border:1px solid #22C55E; color:#22C55E; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all .2s ease;}
+  .wa-send-btn:hover{background:#22C55E; color:#052E16;}
+
   .sticky-cta{display:none; position:fixed; bottom:0; left:0; right:0; z-index:90; background:var(--paper); border-top:1px solid var(--line); padding:12px 20px; box-shadow:0 -4px 16px rgba(0,0,0,0.06);}
   .sticky-cta .btn-primary{display:block; text-align:center; width:100%;}
-  .apply-form{background:var(--card,#fff); border:1px solid var(--line); border-radius:8px; padding:32px; max-width:520px; margin:0 auto; text-align:left;}
-  .apply-form h3{font-size:1.2rem; margin-bottom:6px; color:var(--ink);}
-  .apply-form p.sub{color:var(--ink-soft); font-size:0.9rem; margin-bottom:20px;}
-  .apply-form label{display:block; font-size:0.82rem; color:var(--ink-soft); margin-bottom:6px; margin-top:14px;}
-  .apply-form label:first-of-type{margin-top:0;}
-  .apply-form input, .apply-form textarea{width:100%; border:1px solid var(--line); border-radius:4px; padding:11px 12px; font-family:var(--font-body); font-size:0.95rem; color:var(--ink); background:var(--paper);}
-  .apply-form textarea{resize:vertical; min-height:70px;}
-  .apply-form input:focus, .apply-form textarea:focus{outline:none; border-color:var(--pulse);}
-  .apply-form button{width:100%; margin-top:20px; border:none;}
-  .apply-note{font-size:0.82rem; color:var(--moss); margin-top:14px; display:none; text-align:center;}
-  .apply-note.show{display:block;}
-  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(22,35,42,0.6); z-index:200; align-items:center; justify-content:center; padding:20px;}
-  .modal-overlay.show{display:flex;}
+
   @media (max-width:920px){
     .hero .wrap{grid-template-columns:1fr; gap:40px;}
     .hero-card{order:-1; transform:none;}
     .why-grid{grid-template-columns:1fr;}
     .journey-steps{grid-template-columns:1fr 1fr; gap:32px;}
     .journey-line{display:none;}
-    .faculty-list{grid-template-columns:1fr;}
+    .faculty-list{grid-template-columns:repeat(2,1fr);}
     .footer-grid{grid-template-columns:1fr 1fr; gap:32px;}
-    .program{grid-template-columns:1fr; gap:20px;}
-    .testi-grid{grid-template-columns:1fr;}
+    .program{grid-template-columns:1fr; gap:24px;}
+    .module-grid{grid-template-columns:1fr;}
   }
   @media (max-width:640px){
-    .nav-links{position:fixed; top:76px; left:0; right:0; background:var(--paper); flex-direction:column; align-items:flex-start; padding:24px 32px; gap:20px; border-bottom:1px solid var(--line); transform:translateY(-120%); transition:transform .25s ease; z-index:99;}
+    .theme-switcher{overflow-x:auto; justify-content:flex-start;}
+    .nav-links{position:fixed; top:122px; left:0; right:0; background:var(--paper); flex-direction:column; align-items:flex-start; padding:24px 32px; gap:20px; border-bottom:1px solid var(--line); transform:translateY(-140%); transition:transform .25s ease; z-index:99;}
     .nav-links.open{transform:translateY(0);}
     .nav-toggle{display:block;}
     .wrap{padding:0 20px;}
     .stat-row{flex-wrap:wrap;}
+    .faculty-list{grid-template-columns:1fr;}
     .footer-grid{grid-template-columns:1fr;}
     .footer-bottom{flex-direction:column; align-items:flex-start;}
     .footer-bottom .legal a{margin-left:0; margin-right:16px;}
-    .testi-grid{grid-template-columns:1fr;}
     .strip .wrap{flex-direction:column; gap:20px;}
     .strip-art{flex:0 0 auto; width:100%; max-width:260px;}
     .trust .wrap{justify-content:center; text-align:center;}
     .sticky-cta{display:block;}
     body{padding-bottom:70px;}
-    .whatsapp-btn{right:16px; bottom:86px; width:52px; height:52px;}
-    .wa-popup{right:16px; left:16px; width:auto; bottom:150px;}
+    .wa-launcher-wrap{right:16px; bottom:82px;}
+    .wa-popup{right:16px; left:16px; width:auto; bottom:152px;}
   }
   @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto;} *{transition:none !important;} }
 </style>
 </head>
 <body>
+
+<!-- Live Landing Page Design Switcher (For Previewing & Finalizing Theme) -->
+<div class="theme-switcher" id="themeSwitcher">
+  <span class="theme-switcher-label">🎨 Preview Landing Page Style:</span>
+  <button type="button" class="theme-btn active" data-set-theme="1">1. Classic Warm (Current)</button>
+  <button type="button" class="theme-btn" data-set-theme="2">2. Harvard / HEC Royal</button>
+  <button type="button" class="theme-btn" data-set-theme="3">3. Modern EdTech Cohort</button>
+  <button type="button" class="theme-btn" data-set-theme="4">4. Executive Dark &amp; Gold</button>
+</div>
 
 <nav class="nav">
   <div class="wrap">
@@ -223,16 +297,19 @@
 <section class="hero">
   <div class="wrap">
     <div class="hero-content">
+      <div class="hero-collab-badge">
+        <span>Presented by <strong>Health Services Academy (HSA)</strong> &amp; <strong>Pakistan Institute of Mental Health (PIMH)</strong></span>
+      </div>
       <h1>Trained counselors change what a classroom feels like.</h1>
-      <p class="lead">A postgraduate diploma built for working educators — grounded in mental health science, delivered fully online, and paced around a real teaching schedule.</p>
+      <p class="lead">HEC-approved postgraduate diplomas built for working educators, psychologists, and doctors — grounded in mental health science, delivered online, and paced around a real professional schedule.</p>
       <div class="hero-ctas">
-        <a href="#programs" class="btn btn-primary">Explore the diploma</a>
+        <a href="#programs" class="btn btn-primary">Explore the diplomas</a>
         <a href="/login" class="btn btn-outline">Access learning platform</a>
       </div>
       <div class="stat-row">
-        <div class="stat"><span class="num">30</span><span class="label">Seats this intake</span></div>
-        <div class="stat"><span class="num">7</span><span class="label">Core modules</span></div>
-        <div class="stat"><span class="num">100%</span><span class="label">Delivered online</span></div>
+        <div class="stat"><span class="num">30</span><span class="label">Seats per intake</span></div>
+        <div class="stat"><span class="num">18+2</span><span class="label">HEC credit hours</span></div>
+        <div class="stat"><span class="num">100%</span><span class="label">Online / Hybrid LMS</span></div>
       </div>
     </div>
     <div class="hero-card">
@@ -249,43 +326,92 @@
 
 <div class="trust">
   <div class="wrap">
-    <div class="trust-item"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#9FBBC9" stroke-width="1.6"><path d="M9 2 L15 5 v4 c0 4.5 -3 6.5 -6 7.5 c-3 -1 -6 -3 -6 -7.5 V5 Z"/><path d="M6.2 9 l2 2 l3.6 -4.2"/></svg>HEC-aligned credit structure</div>
+    <div class="hec-seal-badge">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L15.09 5.26L19.5 4.5L20.24 8.91L23.5 12L20.24 15.09L19.5 19.5L15.09 18.74L12 22L8.91 18.74L4.5 19.5L3.76 15.09L0.5 12L3.76 8.91L4.5 4.5L8.91 5.26L12 2Z"/><path d="M8 12l3 3 5-6"/></svg>
+      HEC Approved Diploma Programs
+    </div>
+    <div class="trust-item"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#9FBBC9" stroke-width="1.6"><path d="M9 2 L15 5 v4 c0 4.5 -3 6.5 -6 7.5 c-3 -1 -6 -3 -6 -7.5 V5 Z"/><path d="M6.2 9 l2 2 l3.6 -4.2"/></svg>HEC-aligned 18 + 2 credit structure</div>
     <div class="trust-item"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#C9962E" stroke-width="1.6"><circle cx="9" cy="9" r="7"/><path d="M9 5 v4 l3 2"/></svg>Live + recorded sessions, on your schedule</div>
-    <div class="trust-item"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8AA88C" stroke-width="1.6"><path d="M3 9 h12 M9 3 v12"/><circle cx="9" cy="9" r="7"/></svg>An academic initiative of PIMH</div>
-    <div class="trust-item"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#9FBBC9" stroke-width="1.6"><rect x="3" y="4" width="12" height="10" rx="1.5"/><path d="M3 7 h12"/></svg>Supervised practicum included</div>
+    <div class="trust-item"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#8AA88C" stroke-width="1.6"><path d="M3 9 h12 M9 3 v12"/><circle cx="9" cy="9" r="7"/></svg>Health Services Academy &amp; PIMH Initiative</div>
   </div>
 </div>
 
 <section class="section" id="programs">
   <div class="wrap">
     <div class="section-head">
-      <h2>Two ways to study with us</h2>
-      <p>Each program is built around what a working educator can realistically commit to — evenings, weekends, and school breaks.</p>
+      <h2>Two HEC-Approved Diplomas to Study With Us</h2>
+      <p>Jointly presented by Health Services Academy (HSA) &amp; Pakistan Institute of Mental Health (PIMH) — designed around real clinical and academic schedules.</p>
     </div>
+
+    <!-- Program 1: Diploma in Educational Psychology -->
     <div class="program">
-      <div class="program-meta"><dl>
-        <div><dt>Credit load</dt><dd>18 + 2 credit hours</dd></div>
-        <div><dt>Duration</dt><dd>2 semesters</dd></div>
-        <div><dt>Format</dt><dd>Fully online, live + recorded sessions</dd></div>
-      </dl></div>
+      <div class="program-meta">
+        <dl>
+          <div><dt>Credit Load</dt><dd>18 + 2 Credit Hours</dd></div>
+          <div><dt>Duration</dt><dd>24 Weeks (7 Modules)</dd></div>
+          <div><dt>Format</dt><dd>Online LMS (Live + Recorded)</dd></div>
+          <div><dt>Accreditation</dt><dd>HEC Approved Diploma</dd></div>
+        </dl>
+        <div class="program-fee-box">
+          <span class="fee-label">Program Fee</span>
+          <span class="fee-amount">Rs. 72,500</span>
+        </div>
+      </div>
       <div class="program-body">
-        <span class="program-tag">Diploma program</span>
-        <h3>Postgraduate Diploma in Educational Counseling</h3>
-        <p>A structured program in counseling theory, student mental health, and classroom-applied psychology — built with practicing educators, not around a generic psychology syllabus. Includes supervised casework and a final practicum module.</p>
-        <button type="button" class="link-more" data-open-apply="Postgraduate Diploma in Educational Counseling">View curriculum &amp; apply</button>
+        <div class="program-badges">
+          <span class="program-tag">Diploma Program</span>
+          <span class="program-tag hec">✓ HEC Approved Diploma</span>
+        </div>
+        <h3>Diploma in Educational Psychology</h3>
+        <p>Unlock your potential in Educational Psychology with a structured 7-module curriculum covering learning psychology, trauma-informed counseling, special needs assessment, and student mental health.</p>
+        <div class="module-grid">
+          <div class="module-item"><span class="module-num">MOD 1</span><span>Psychology of Learning</span></div>
+          <div class="module-item"><span class="module-num">MOD 2</span><span>Mental Health &amp; Social-Emotional Learning (SEL)</span></div>
+          <div class="module-item"><span class="module-num">MOD 3</span><span>Educational Guidance and Counseling</span></div>
+          <div class="module-item"><span class="module-num">MOD 4</span><span>Trauma-Informed Counseling</span></div>
+          <div class="module-item"><span class="module-num">MOD 5</span><span>Special Needs Assessment &amp; Individualized Education Plans</span></div>
+          <div class="module-item"><span class="module-num">MOD 6</span><span>Neurodivergent Behaviors</span></div>
+          <div class="module-item"><span class="module-num">MOD 7</span><span>Drugs Prevention and Rehabilitation</span></div>
+        </div>
+        <div class="exclusive-box">
+          <strong>Exclusive For:</strong> Psychiatrists, Trainee Psychiatrists, MBBS Doctors, Prospective &amp; Practicing Teachers, and Psychologists.
+        </div>
+        <a href="/register" class="link-more">Apply &amp; Register Now →</a>
       </div>
     </div>
+
+    <!-- Program 2: Diploma in Addiction Psychology -->
     <div class="program">
-      <div class="program-meta"><dl>
-        <div><dt>Credit load</dt><dd>To be announced</dd></div>
-        <div><dt>Duration</dt><dd>Short-form</dd></div>
-        <div><dt>Format</dt><dd>Fully online</dd></div>
-      </dl></div>
+      <div class="program-meta">
+        <dl>
+          <div><dt>Credit Load</dt><dd>18 + 2 Credit Hours</dd></div>
+          <div><dt>Duration</dt><dd>40 Weeks (Hybrid Learning)</dd></div>
+          <div><dt>Cohort Size</dt><dd>Limited to 30 Students</dd></div>
+          <div><dt>Accreditation</dt><dd>HEC Approved Diploma</dd></div>
+        </dl>
+        <div class="program-fee-box">
+          <span class="fee-label">Program Fee</span>
+          <span class="fee-amount">Rs. 99,500</span>
+        </div>
+      </div>
       <div class="program-body">
-        <span class="program-tag">Coming soon</span>
-        <h3>Certification in Student Mental Health Support</h3>
-        <p>A focused, shorter program for school counselors and support staff who need specific skills — crisis response, referral pathways, and early identification — without the full diploma commitment.</p>
-        <button type="button" class="link-more" data-open-apply="Certification in Student Mental Health Support (waitlist)">Join the waitlist</button>
+        <div class="program-badges">
+          <span class="program-tag">Diploma Program</span>
+          <span class="program-tag hec">✓ HEC Approved Diploma</span>
+        </div>
+        <h3>Diploma in Addiction Psychology</h3>
+        <p>An intensive, clinically grounded diploma in addiction science, psychodynamics, family systems, and evidence-based evaluation and rehabilitation management.</p>
+        <div class="module-grid">
+          <div class="module-item"><span class="module-num">MOD I</span><span>Foundation of Addiction Psychology</span></div>
+          <div class="module-item"><span class="module-num">MOD II</span><span>Psychodynamics of Addiction</span></div>
+          <div class="module-item"><span class="module-num">MOD III</span><span>Evaluation &amp; Management</span></div>
+          <div class="module-item"><span class="module-num">MOD IV</span><span>Dysfunctional Family and NPI</span></div>
+          <div class="module-item"><span class="module-num">MOD V &amp; VI</span><span>Personality &amp; Addiction</span></div>
+        </div>
+        <div class="exclusive-box">
+          <strong>Exclusive For:</strong> Psychologists, Psychiatrists, Trainee Psychiatrists, and MBBS Doctors.
+        </div>
+        <a href="/register" class="link-more">Apply &amp; Register Now →</a>
       </div>
     </div>
   </div>
@@ -293,26 +419,26 @@
 
 <section class="section section-alt">
   <div class="wrap">
-    <div class="section-head"><h2>What actually makes this different</h2><p>Most counseling credentials are written for clinicians. This one is written for people standing in front of a classroom.</p></div>
+    <div class="section-head"><h2>What actually makes this different</h2><p>Most counseling credentials are written purely for theory. Ours are built by practicing psychiatrists, psychologists, and educators for real-world impact.</p></div>
     <div class="why-grid">
-      <div class="why-item"><span class="why-tag">Faculty</span><h3>Faculty who still practice</h3><p>Every core instructor supervises real casework alongside teaching — the curriculum gets updated by what's actually showing up in schools, not just literature.</p></div>
-      <div class="why-item"><span class="why-tag">Schedule</span><h3>Built around a teaching calendar</h3><p>Live sessions are scheduled around the academic year educators already work within, not a generic term calendar borrowed from a psychology department.</p></div>
-      <div class="why-item"><span class="why-tag">Recognition</span><h3>HEC-aligned, not HEC-adjacent</h3><p>Credit hours and program structure are mapped directly to Higher Education Commission requirements, so the diploma counts where you need it to.</p></div>
-      <div class="why-item"><span class="why-tag">Fieldwork</span><h3>Practice, not just theory</h3><p>Supervised fieldwork and real case studies run through both semesters — by the final module, you're consulting on live situations, not hypotheticals.</p></div>
+      <div class="why-item"><span class="why-tag">Faculty</span><h3>Faculty who still practice</h3><p>Every core instructor supervises real clinical and educational casework alongside teaching — the curriculum gets updated by what's actually showing up in schools and clinics, not just literature.</p></div>
+      <div class="why-item"><span class="why-tag">Schedule</span><h3>Built around a working schedule</h3><p>Live sessions and self-paced modules are scheduled around the professional calendar educators and clinicians already work within.</p></div>
+      <div class="why-item"><span class="why-tag">Recognition</span><h3>HEC-approved, not HEC-adjacent</h3><p>Presented jointly by Health Services Academy (HSA) and PIMH, with 18 + 2 credit hours mapped directly to Higher Education Commission requirements.</p></div>
+      <div class="why-item"><span class="why-tag">Fieldwork</span><h3>Practice, not just theory</h3><p>Supervised casework and real case studies run through the program — by the final module, you're consulting on live situations, not hypotheticals.</p></div>
     </div>
   </div>
 </section>
 
 <section class="section" id="journey">
   <div class="wrap">
-    <div class="section-head"><h2>How the diploma actually unfolds</h2><p>Four stages, from application to certification — each one online, each one tracked in your student dashboard.</p></div>
+    <div class="section-head"><h2>How the diploma actually unfolds</h2><p>Four stages, from registration to certification — each one online, each one tracked in your student dashboard.</p></div>
     <div class="journey">
       <div class="journey-line"></div>
       <div class="journey-steps">
-        <div class="journey-step"><div class="step-tick"></div><h4>Apply &amp; enroll</h4><p>Submit your application, confirm your seat, and get dashboard access within days.</p></div>
-        <div class="journey-step"><div class="step-tick"></div><h4>Semester one</h4><p>Foundational counseling theory and educational psychology, delivered live and on-demand.</p></div>
-        <div class="journey-step"><div class="step-tick"></div><h4>Semester two &amp; practicum</h4><p>Applied casework, supervised practice, and your final assessed project.</p></div>
-        <div class="journey-step"><div class="step-tick"></div><h4>Diploma awarded</h4><p>A verifiable, HEC-aligned diploma — plus a certificate you can share directly from your dashboard.</p></div>
+        <div class="journey-step"><div class="step-tick"></div><h4>Register &amp; verify</h4><p>Create your student account, upload your fee receipt, and unlock your LMS portal.</p></div>
+        <div class="journey-step"><div class="step-tick"></div><h4>Core modules</h4><p>Foundational psychology and counseling modules, delivered live and on-demand.</p></div>
+        <div class="journey-step"><div class="step-tick"></div><h4>Assessments &amp; practicum</h4><p>Applied casework, timed module quizzes, and faculty-graded assignments.</p></div>
+        <div class="journey-step"><div class="step-tick"></div><h4>Diploma awarded</h4><p>A verifiable, HEC-approved diploma — plus a certificate you can download directly from your dashboard.</p></div>
       </div>
     </div>
   </div>
@@ -322,8 +448,8 @@
   <div class="wrap">
     <div class="strip-art">
       <svg viewBox="0 0 260 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <rect x="20" y="90" width="140" height="90" rx="4" fill="none" stroke="#16232A" stroke-width="1.6"/>
-        <rect x="20" y="90" width="140" height="14" fill="#16232A" opacity="0.06"/>
+        <rect x="20" y="90" width="140" height="90" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <rect x="20" y="90" width="140" height="14" fill="currentColor" opacity="0.06"/>
         <line x1="34" y1="118" x2="120" y2="118" stroke="#3E6B82" stroke-width="1.6"/>
         <line x1="34" y1="132" x2="146" y2="132" stroke="#D9D3C0" stroke-width="1.4"/>
         <line x1="34" y1="146" x2="146" y2="146" stroke="#D9D3C0" stroke-width="1.4"/>
@@ -344,35 +470,65 @@
 
 <section class="section section-alt" id="faculty">
   <div class="wrap">
-    <div class="section-head"><h2>Learn from people still doing the work</h2><p>A small, deliberately chosen faculty — every member brings active clinical or academic practice into the classroom.</p></div>
+    <div class="section-head">
+      <h2>Learn from people still doing the work</h2>
+      <p>Our distinguished faculty brings active psychiatric, clinical psychology, and higher education leadership directly into your online classroom.</p>
+    </div>
     <div class="faculty-list">
-      <div class="faculty-card"><img src="/img/faculty-1.png" alt="Dr. Usama Bin Zubair" class="faculty-avatar-img"><h3>Dr. Usama Bin Zubair</h3><div class="role">Chair &amp; Lead Faculty</div><p class="bio">Leads program design and the core counseling theory sequence, with a background spanning both clinical practice and higher education.</p></div>
-      <div class="faculty-card"><img src="/img/faculty-2.png" alt="Dr. Sana Ibrahim" class="faculty-avatar-img"><h3>Dr. Sana Ibrahim</h3><div class="role">Senior Faculty, Educational Psychology</div><p class="bio">Brings two decades in educational psychology, focused on how counseling frameworks translate into everyday classroom decisions.</p></div>
-      <div class="faculty-card"><img src="/img/faculty-3.png" alt="Ms. Anjum Afshan" class="faculty-avatar-img"><h3>Ms. Anjum Afshan</h3><div class="role">Faculty Member</div><p class="bio">Runs the supervised practicum, working directly with students through their casework in the second semester.</p></div>
+      <div class="faculty-card">
+        <img src="/img/faculty-usama.jpg" alt="Dr. Usama Bin Zubair" class="faculty-avatar-img">
+        <h3>Dr. Usama Bin Zubair</h3>
+        <div class="role">CEO and Consultant Psychiatrist</div>
+      </div>
+      <div class="faculty-card">
+        <img src="/img/faculty-azhar.jpg" alt="Dr. Syed Azhar Ali Kazmi" class="faculty-avatar-img">
+        <h3>Dr. Syed Azhar Ali Kazmi</h3>
+        <div class="role">Consultant Psychiatrist and Addiction Expert</div>
+      </div>
+      <div class="faculty-card">
+        <img src="/img/faculty-afshan.jpg" alt="Ms. Afshan Huma" class="faculty-avatar-img">
+        <h3>Ms. Afshan Huma</h3>
+        <div class="role">Faculty Member</div>
+      </div>
+      <div class="faculty-card">
+        <img src="/img/faculty-anjum.jpg" alt="Ms. Anjum Afshan" class="faculty-avatar-img">
+        <h3>Ms. Anjum Afshan</h3>
+        <div class="role">Faculty Member</div>
+      </div>
+      <div class="faculty-card">
+        <img src="/img/faculty-talat.jpg" alt="Dr. Talat Habib" class="faculty-avatar-img">
+        <h3>Dr. Talat Habib</h3>
+        <div class="role">Faculty Member</div>
+      </div>
+      <div class="faculty-card">
+        <img src="/img/faculty-aasia.jpg" alt="Ms. Aasia Ashraf" class="faculty-avatar-img">
+        <h3>Ms. Aasia Ashraf</h3>
+        <div class="role">Faculty Member</div>
+      </div>
     </div>
   </div>
 </section>
 
+<!--
+  ARCHIVED SECTION: "What our current cohort is saying" (Testimonials)
+  Archived temporarily until real cohort testimonials are ready.
 <section class="section">
   <div class="wrap">
-    <div class="section-head"><h2>What our current cohort is saying</h2><p>Placeholder reflections written in the voice of working educators — to be replaced with real testimonials once the first cohort completes a semester.</p></div>
-    <div class="testi-grid">
-      <div class="testi-card"><p class="testi-quote">"I finally understand why a student shuts down in class, not just that they did. That shift alone changed how I run my sessions."</p><div class="testi-who"><div class="testi-avatar">SR</div><div><div class="testi-name">Sana R.</div><div class="testi-role">Secondary school teacher, Lahore</div></div></div></div>
-      <div class="testi-card"><p class="testi-quote">"The practicum was the part I was most nervous about. It turned out to be the most useful ten weeks of the whole diploma."</p><div class="testi-who"><div class="testi-avatar">FA</div><div><div class="testi-name">Farrukh A.</div><div class="testi-role">School counselor, Islamabad</div></div></div></div>
-      <div class="testi-card"><p class="testi-quote">"Live sessions on Saturday mornings meant I never had to choose between this diploma and my actual teaching job."</p><div class="testi-who"><div class="testi-avatar">HM</div><div><div class="testi-name">Hina M.</div><div class="testi-role">Primary educator, Rawalpindi</div></div></div></div>
-    </div>
+    <div class="section-head"><h2>What our current cohort is saying</h2></div>
+    <div class="testi-grid">...</div>
   </div>
 </section>
+-->
 
-<section class="section section-alt" id="faq">
+<section class="section" id="faq">
   <div class="wrap">
-    <div class="section-head"><h2>Before you apply</h2><p>The questions we hear most from working educators considering this diploma.</p></div>
+    <div class="section-head"><h2>Before you apply</h2><p>The questions we hear most from educators, psychologists, and doctors considering our HEC-approved diplomas.</p></div>
     <div class="faq-list">
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Is any part of this program in-person?<span class="plus">+</span></button><div class="faq-a"><p>No. Every session, assignment, and assessment is delivered online. "Hybrid" refers to the mix of live and recorded sessions, not physical attendance.</p></div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">How many hours a week does this actually take?<span class="plus">+</span></button><div class="faq-a"><p>Most students spend 6–8 hours a week across live sessions, recorded lectures, and coursework — designed to sit alongside a full-time teaching job.</p></div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Does the diploma carry HEC recognition?<span class="plus">+</span></button><div class="faq-a"><p>Yes. Credit hours and program structure are mapped to Higher Education Commission requirements for postgraduate diplomas.</p></div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">What payment options are available?<span class="plus">+</span></button><div class="faq-a"><p>Bank transfer is currently supported, with your enrollment confirmed once payment is verified. Card payments are being added in a future update.</p></div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">What happens after I apply?<span class="plus">+</span></button><div class="faq-a"><p>You'll get dashboard access within a few days of your seat being confirmed, with onboarding material available before semester one begins. You can also create your login now and browse once approved.</p></div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">How are classes and assessments delivered?<span class="plus">+</span></button><div class="faq-a"><p>Every module, reading, quiz, and assignment is managed through your online PIMH Academy LMS dashboard, combining live interactive sessions with recorded lectures.</p></div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">How many hours a week does this actually take?<span class="plus">+</span></button><div class="faq-a"><p>Most students spend 6–8 hours a week across live sessions, recorded lectures, and coursework — designed to sit alongside a full-time teaching or clinical schedule.</p></div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Do the diplomas carry HEC recognition?<span class="plus">+</span></button><div class="faq-a"><p>Yes. Both the Diploma in Educational Psychology and the Diploma in Addiction Psychology carry 18 + 2 credit hours and are HEC-approved diplomas presented by Health Services Academy (HSA) and PIMH.</p></div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">How do I pay my fee and unlock my dashboard?<span class="plus">+</span></button><div class="faq-a"><p>Simply create your account at /register, select your course on your student dashboard, and upload your bank transfer payment receipt. Once verified by admissions, your full course dashboard unlocks immediately.</p></div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">What happens after I register?<span class="plus">+</span></button><div class="faq-a"><p>You verify your email, upload your fee receipt inside the portal, and receive an instant email confirmation as soon as your enrollment is approved by our admissions team.</p></div></div>
     </div>
   </div>
 </section>
@@ -380,12 +536,12 @@
 <section class="cta-banner" id="contact">
   <div class="wrap">
     <h2>Applications for this intake are open now.</h2>
-    <p>Thirty seats, one cohort, fully online. Talk to admissions before you commit, or start your application today.</p>
+    <p>Thirty seats per cohort. Talk to admissions on WhatsApp before you commit, or start your registration directly on the LMS today.</p>
     <div class="cta-actions">
-      <button type="button" class="btn btn-primary" data-open-apply="Postgraduate Diploma in Educational Counseling">Start application</button>
-      <a href="https://wa.me/923000000000?text=Hi%2C%20I%27d%20like%20to%20talk%20to%20admissions" class="btn btn-outline">Talk to admissions</a>
+      <a href="/register" class="btn btn-primary">Start application</a>
+      <button type="button" class="btn btn-outline" id="talkAdmissionsBtn">Talk to admissions</button>
     </div>
-    <p class="cta-note">Already applied? <a href="/login" style="color:var(--cream); text-decoration:underline;">Log in</a> · New here? <a href="/register" style="color:var(--cream); text-decoration:underline;">Create your account</a></p>
+    <p class="cta-note">Already registered? <a href="/login" style="color:var(--hero-text); text-decoration:underline;">Log in</a> · New here? <a href="/register" style="color:var(--hero-text); text-decoration:underline;">Create your account</a></p>
   </div>
 </section>
 
@@ -394,82 +550,91 @@
     <div class="footer-grid">
       <div class="footer-brand">
         <div class="nav-mark"><img src="/img/logo.png" alt="PIMH Academy Logo" class="nav-logo-img">PIMH Academy</div>
-        <p>An academic initiative of the Pakistan Institute of Mental Health, training educators to support student wellbeing through evidence-based counseling practice.</p>
+        <p>An academic initiative of Health Services Academy (HSA) &amp; Pakistan Institute of Mental Health (PIMH), delivering HEC-approved postgraduate diplomas in Educational &amp; Addiction Psychology.</p>
       </div>
-      <div class="footer-col"><h4>Programs</h4><ul><li><a href="#programs">Diploma in Educational Counseling</a></li><li><a href="#programs">Certification (Coming soon)</a></li><li><a href="/login">Learning platform</a></li></ul></div>
-      <div class="footer-col"><h4>Institute</h4><ul><li><a href="#faculty">Faculty</a></li><li><a href="#journey">Admissions</a></li><li><a href="#contact">Fee structure</a></li></ul></div>
-      <div class="footer-col"><h4>Contact</h4><ul><li>Pakistan Institute of Mental Health, Islamabad</li><li>admissions@pimh.edu.pk</li><li>+92 (0)51 000 0000</li></ul></div>
+      <div class="footer-col"><h4>Programs</h4><ul><li><a href="#programs">Diploma in Educational Psychology</a></li><li><a href="#programs">Diploma in Addiction Psychology</a></li><li><a href="/login">Learning platform</a></li></ul></div>
+      <div class="footer-col"><h4>Institute</h4><ul><li><a href="#faculty">Teaching Faculty</a></li><li><a href="#journey">Admissions Process</a></li><li><a href="/register">Student Registration</a></li></ul></div>
+      <div class="footer-col"><h4>Contact</h4><ul><li>Pakistan Institute of Mental Health, Islamabad</li><li><a href="https://pimh.pk" target="_blank" rel="noopener">https://pimh.pk</a></li><li><a href="tel:+923342466777">+(92) 334 2466777</a></li></ul></div>
     </div>
     <div class="footer-bottom">
       <span>PIMH Academy. Powered By CraftedMindss</span>
-      <span class="legal"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Refund policy</a></span>
+      <span class="legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a></span>
     </div>
   </div>
 </footer>
 
-<div class="sticky-cta"><button type="button" class="btn btn-primary" data-open-apply="Postgraduate Diploma in Educational Counseling" style="width:100%; border:none;">Start your application</button></div>
+<div class="sticky-cta"><a href="/register" class="btn btn-primary" style="width:100%; border:none;">Start your application</a></div>
 
-<button class="whatsapp-btn" id="waToggle" aria-label="Chat with us on WhatsApp">
-  <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M16 5 C9.9 5 5 9.9 5 16 c0 2.1 0.6 4.1 1.6 5.8 L5 27 l5.4 -1.6 c1.6 1 3.5 1.5 5.6 1.5 c6.1 0 11 -4.9 11 -11 S22.1 5 16 5 Z" fill="#FFFFFF"/>
-    <path d="M16 6.3 c-5.4 0 -9.7 4.3 -9.7 9.7 c0 1.9 0.5 3.6 1.5 5.2 l-1 3.7 l3.8 -1 c1.5 0.9 3.2 1.4 5 1.4 h0.4 c5.4 0 9.7 -4.3 9.7 -9.7 s-4.3 -9.7 -9.7 -9.7 Z" fill="#25D366"/>
-    <path d="M21.3 18.4 c-0.3 -0.15 -1.7 -0.85 -2 -0.95 c-0.27 -0.1 -0.46 -0.15 -0.66 0.15 c-0.2 0.3 -0.75 0.95 -0.92 1.15 c-0.17 0.2 -0.34 0.22 -0.63 0.07 c-0.3 -0.15 -1.24 -0.46 -2.36 -1.46 c-0.87 -0.78 -1.46 -1.74 -1.63 -2.04 c-0.17 -0.3 -0.02 -0.46 0.13 -0.6 c0.13 -0.13 0.3 -0.34 0.44 -0.5 c0.15 -0.17 0.2 -0.3 0.3 -0.5 c0.1 -0.2 0.05 -0.37 -0.02 -0.52 c-0.08 -0.15 -0.66 -1.6 -0.9 -2.18 c-0.24 -0.57 -0.48 -0.5 -0.66 -0.5 c-0.17 -0.01 -0.37 -0.01 -0.57 -0.01 c-0.2 0 -0.52 0.07 -0.79 0.37 c-0.27 0.3 -1.04 1.02 -1.04 2.48 c0 1.46 1.07 2.87 1.22 3.07 c0.15 0.2 2.1 3.2 5.08 4.49 c0.71 0.3 1.26 0.49 1.7 0.62 c0.71 0.23 1.36 0.19 1.87 0.12 c0.57 -0.08 1.7 -0.7 1.94 -1.37 c0.24 -0.67 0.24 -1.24 0.17 -1.37 c-0.07 -0.12 -0.26 -0.2 -0.56 -0.34 Z" fill="#FFFFFF"/>
-  </svg>
-</button>
+<!-- CraftedMinds-Style Floating WhatsApp Launcher & Popup (03342466777) -->
+<div class="wa-launcher-wrap" id="waLauncherWrap">
+  <div class="wa-chat-pill" id="waPillBtn">Chat with us</div>
+  <button class="whatsapp-btn" id="waToggle" aria-label="Chat with us on WhatsApp">
+    <!-- Chat Bubble Icon -->
+    <svg class="icon-chat" viewBox="0 0 24 24" fill="#FFFFFF" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 3C6.5 3 2 6.9 2 11.8c0 2.1.8 4.1 2.2 5.6L3 21l3.8-1.2c1.6.7 3.3 1 5.2 1 5.5 0 10-3.9 10-8.8S17.5 3 12 3z"/>
+    </svg>
+    <!-- Close X Icon -->
+    <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+</div>
 
 <div class="wa-popup" id="waPopup">
   <div class="wa-popup-head">
-    <div class="wa-popup-avatar"><img src="/img/logo.png" alt="PIMH Academy Crest Logo"></div>
-    <div>
-      <strong>PIMH Academy Admissions</strong>
-      <span><span class="wa-online-dot"></span> Online — Direct Support</span>
+    <div class="wa-popup-avatar"><img src="/img/logo.png" alt="Academy PIMH"></div>
+    <div class="wa-popup-head-info">
+      <strong>Academy PIMH</strong>
+      <span><span class="wa-online-dot"></span> Typically replies within minutes</span>
     </div>
     <button class="wa-popup-close" id="waClose" aria-label="Close chat">✕</button>
   </div>
   <div class="wa-popup-body">
-    <div class="wa-bubble-wrap">
-      <div class="wa-bubble">Hello. How we can assist you?</div>
-      <div class="wa-bubble-meta">
-        <span>PIMH Admissions Team</span>
-        <span>Just now</span>
-      </div>
+    <div class="wa-bubble">
+      Salam! Welcome to PIMH Academy. How can we help you today?
+      <span class="wa-bubble-time" id="waTime">Just now</span>
     </div>
-    <a href="https://wa.me/923000000000?text=Hello%2C%20I%20have%20a%20question%20about%20PIMH%20Academy" target="_blank" rel="noopener" class="btn-primary">
-      <svg width="18" height="18" viewBox="0 0 32 32" fill="#fff"><path d="M16 5 C9.9 5 5 9.9 5 16 c0 2.1 0.6 4.1 1.6 5.8 L5 27 l5.4 -1.6 c1.6 1 3.5 1.5 5.6 1.5 c6.1 0 11 -4.9 11 -11 S22.1 5 16 5 Z"/></svg>
-      Start Chat on WhatsApp
-    </a>
-    <div class="wa-secure-tag">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      Encrypted & Official Academy Line
+    <div class="wa-options">
+      <button type="button" class="wa-option-btn" data-wa-msg="Salam! I want to apply for the Diploma in Educational Psychology (Rs. 72,500).">Diploma in Educational Psychology</button>
+      <button type="button" class="wa-option-btn" data-wa-msg="Salam! I want to apply for the Diploma in Addiction Psychology (Rs. 99,500).">Diploma in Addiction Psychology</button>
+      <button type="button" class="wa-option-btn" data-wa-msg="Salam! I need details regarding the fee structure and admission process.">Fee Structure &amp; Admission Process</button>
+      <button type="button" class="wa-option-btn" data-wa-msg="Salam! I would like to speak with a PIMH Academy Admissions Advisor.">Talk to an Admissions Advisor</button>
     </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="applyOverlay">
-  <div class="apply-form">
-    <h3 id="applyTitle">Start your application</h3>
-    <p class="sub" id="applySub">Tell us how to reach you — admissions will follow up, and you can create your login any time.</p>
-    <form id="applyForm">
-      <label for="applyName">Full name</label>
-      <input type="text" id="applyName" required>
-      <label for="applyEmail">Email</label>
-      <input type="email" id="applyEmail" required>
-      <label for="applyPhone">Phone</label>
-      <input type="text" id="applyPhone">
-      <label for="applyMessage">Anything you'd like admissions to know?</label>
-      <textarea id="applyMessage"></textarea>
-      <button type="submit" class="btn btn-primary">Submit application</button>
-      <p class="apply-note" id="applyNote">Thanks — admissions will be in touch shortly. You can also <a href="/register" style="color:var(--moss);">create your login</a> now.</p>
+    <form class="wa-input-row" id="waForm">
+      <input type="text" class="wa-input" id="waInput" placeholder="Type a message..." autocomplete="off">
+      <button type="submit" class="wa-send-btn" aria-label="Send WhatsApp message">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
     </form>
-    <button type="button" id="applyClose" style="margin-top:14px; background:none; border:none; color:var(--ink-soft); font-size:0.85rem; cursor:pointer;">Close</button>
   </div>
 </div>
 
 <script>
+  var WA_PHONE = '923342466777';
+
+  // Mobile Menu Toggle
   document.getElementById('navToggle').addEventListener('click', function(){
     document.getElementById('navLinks').classList.toggle('open');
   });
 
+  // Live Theme Switcher
+  var savedTheme = localStorage.getItem('pimh_landing_theme') || '1';
+  function applyTheme(t){
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('pimh_landing_theme', t);
+    document.querySelectorAll('[data-set-theme]').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-set-theme') === t);
+    });
+  }
+  applyTheme(savedTheme);
+  document.querySelectorAll('[data-set-theme]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      applyTheme(btn.getAttribute('data-set-theme'));
+    });
+  });
+
+  // FAQ Accordion
   function toggleFaq(btn){
     var item = btn.parentElement;
     var answer = item.querySelector('.faq-a');
@@ -484,47 +649,65 @@
     }
   }
 
+  // Set current formatted time inside WhatsApp greeting bubble
+  function updateWaTime(){
+    var now = new Date();
+    var hrs = now.getHours();
+    var mins = String(now.getMinutes()).padStart(2, '0');
+    var ampm = hrs >= 12 ? 'PM' : 'AM';
+    hrs = hrs % 12 || 12;
+    var el = document.getElementById('waTime');
+    if (el) el.textContent = String(hrs).padStart(2, '0') + ':' + mins + ' ' + ampm;
+  }
+  updateWaTime();
+
+  // WhatsApp Popup Open / Close Logic
   var waToggle = document.getElementById('waToggle');
+  var waPillBtn = document.getElementById('waPillBtn');
   var waPopup = document.getElementById('waPopup');
   var waClose = document.getElementById('waClose');
-  if(waToggle) waToggle.addEventListener('click', function(e){ e.preventDefault(); waPopup.classList.toggle('open'); });
-  if(waClose) waClose.addEventListener('click', function(){ waPopup.classList.remove('open'); });
+  var waLauncherWrap = document.getElementById('waLauncherWrap');
+  var talkAdmissionsBtn = document.getElementById('talkAdmissionsBtn');
+
+  function setWaOpen(open){
+    waPopup.classList.toggle('open', open);
+    waLauncherWrap.classList.toggle('is-open', open);
+    if(open){
+      updateWaTime();
+      setTimeout(function(){ document.getElementById('waInput').focus(); }, 150);
+    }
+  }
+
+  if(waToggle) waToggle.addEventListener('click', function(e){ e.preventDefault(); setWaOpen(!waPopup.classList.contains('open')); });
+  if(waPillBtn) waPillBtn.addEventListener('click', function(e){ e.preventDefault(); setWaOpen(true); });
+  if(waClose) waClose.addEventListener('click', function(){ setWaOpen(false); });
+  if(talkAdmissionsBtn) talkAdmissionsBtn.addEventListener('click', function(e){ e.preventDefault(); setWaOpen(true); });
+
   document.addEventListener('click', function(e){
-    if(waPopup.classList.contains('open') && !waPopup.contains(e.target) && e.target !== waToggle && !waToggle.contains(e.target)){
-      waPopup.classList.remove('open');
+    if(waPopup.classList.contains('open') &&
+       !waPopup.contains(e.target) &&
+       !waLauncherWrap.contains(e.target) &&
+       e.target !== talkAdmissionsBtn){
+      setWaOpen(false);
     }
   });
 
-  var applyOverlay = document.getElementById('applyOverlay');
-  var applyForm = document.getElementById('applyForm');
-  var applyNote = document.getElementById('applyNote');
-  document.querySelectorAll('[data-open-apply]').forEach(function(btn){
+  function openWhatsAppWithText(msg){
+    var url = 'https://wa.me/' + WA_PHONE + '?text=' + encodeURIComponent(msg);
+    window.open(url, '_blank', 'noopener');
+  }
+
+  document.querySelectorAll('[data-wa-msg]').forEach(function(btn){
     btn.addEventListener('click', function(){
-      document.getElementById('applyTitle').textContent = 'Apply — ' + btn.getAttribute('data-open-apply');
-      applyForm.style.display = '';
-      applyNote.classList.remove('show');
-      applyOverlay.classList.add('show');
+      openWhatsAppWithText(btn.getAttribute('data-wa-msg'));
     });
   });
-  document.getElementById('applyClose').addEventListener('click', function(){ applyOverlay.classList.remove('show'); });
-  applyOverlay.addEventListener('click', function(e){ if(e.target === applyOverlay) applyOverlay.classList.remove('show'); });
 
-  applyForm.addEventListener('submit', function(e){
+  document.getElementById('waForm').addEventListener('submit', function(e){
     e.preventDefault();
-    var payload = {
-      name: document.getElementById('applyName').value.trim(),
-      email: document.getElementById('applyEmail').value.trim(),
-      phone: document.getElementById('applyPhone').value.trim(),
-      message: document.getElementById('applyMessage').value.trim()
-    };
-    if(!payload.name || !payload.email) return;
-    fetch('/api/leads', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
-      .then(function(r){ return r.json(); })
-      .then(function(){
-        applyForm.style.display = 'none';
-        applyNote.classList.add('show');
-      })
-      .catch(function(){ alert('Something went wrong — please try again or message us on WhatsApp.'); });
+    var val = document.getElementById('waInput').value.trim();
+    openWhatsAppWithText(val || 'Salam! I have a question about PIMH Academy.');
+    document.getElementById('waInput').value = '';
   });
 </script>
 

@@ -33,7 +33,7 @@ require('../routes/pages')(router);
 require('../routes/api')(router);
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
-const MIME = { '.css': 'text/css', '.js': 'application/javascript', '.png': 'image/png' };
+const MIME = { '.css': 'text/css', '.js': 'application/javascript', '.png': 'image/png', '.jpg': 'image/jpeg' };
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -302,6 +302,47 @@ async function req(baseUrl, method, urlPath, { body, cookie, redirect = 'manual'
     assert(gLoc.includes(process.env.GOOGLE_CLIENT_ID), 'Redirect URL must include live GOOGLE_CLIENT_ID');
     assert(gLoc.includes(encodeURIComponent('/api/auth/google/callback')), 'Redirect URL must include /api/auth/google/callback');
     ok('Google OAuth start route redirects with live Client ID & callback URI');
+
+    // -------------------------------------------------------------------------
+    // TEST 8: Landing Page QA (6 Faculty Portraits, 2 HEC Diplomas, WhatsApp & Switcher)
+    // -------------------------------------------------------------------------
+    console.log('\n[8/8] Testing Landing Page Content, 6 Faculty Portraits, WhatsApp Widget & Switcher...');
+    const landing = await req(BASE, 'GET', '/');
+    assert.strictEqual(landing.status, 200);
+    for (const name of [
+      'Dr. Usama Bin Zubair',
+      'Dr. Syed Azhar Ali Kazmi',
+      'Ms. Afshan Huma',
+      'Ms. Anjum Afshan',
+      'Dr. Talat Habib',
+      'Ms. Aasia Ashraf',
+    ]) {
+      assert(landing.text.includes(name), `Landing page must display faculty member: ${name}`);
+    }
+    assert(!landing.text.includes('Dr. Sana Ibrahim'), 'Old placeholder faculty Dr. Sana Ibrahim must be removed');
+    ok('All 6 real faculty members displayed with titles only (Dr. Sana Ibrahim removed)');
+
+    for (const imgPath of [
+      '/img/faculty-usama.jpg',
+      '/img/faculty-azhar.jpg',
+      '/img/faculty-afshan.jpg',
+      '/img/faculty-anjum.jpg',
+      '/img/faculty-talat.jpg',
+      '/img/faculty-aasia.jpg',
+    ]) {
+      const imgRes = await req(BASE, 'GET', imgPath);
+      assert.strictEqual(imgRes.status, 200, `Faculty image ${imgPath} must return 200`);
+    }
+    ok('All 6 uploaded faculty portrait images serve with HTTP 200');
+
+    assert(landing.text.includes('Diploma in Educational Psychology') && landing.text.includes('Rs. 72,500'), 'Must display Diploma in Educational Psychology (Rs. 72,500)');
+    assert(landing.text.includes('Diploma in Addiction Psychology') && landing.text.includes('Rs. 99,500'), 'Must display Diploma in Addiction Psychology (Rs. 99,500)');
+    assert(landing.text.includes('HEC Approved Diploma'), 'Must display HEC Approved Diploma trust badge');
+    ok('Both official HEC-Approved Diplomas (Educational & Addiction Psychology) and fees verified');
+
+    assert(landing.text.includes('Academy PIMH') && landing.text.includes('Salam! Welcome to PIMH Academy. How can we help you today?') && landing.text.includes('923342466777'), 'WhatsApp widget must use 03342466777 and CraftedMinds popup design');
+    assert(landing.text.includes('data-set-theme="1"') && landing.text.includes('data-set-theme="4"'), 'Landing page must include the 4-style theme switcher');
+    ok('CraftedMinds-style WhatsApp widget (03342466777) and 4-theme switcher verified');
 
     console.log(`\n🎉 ALL ${passed} UNIT & INTEGRATION ASSERTIONS PASSED SUCCESSFULLY!\n`);
   } finally {
