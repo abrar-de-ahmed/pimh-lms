@@ -5,3 +5,6 @@ data/*.db-wal
 data/uploads/
 .env
 .DS_Store
+*.zip
+*.tar.gz
+
