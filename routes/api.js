@@ -219,16 +219,21 @@ module.exports = function register(router) {
     }
     const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
     if (existing) return sendJson(res, 409, { error: 'An account with this email already exists.' });
-    const tempPassword = Math.random().toString(36).slice(2, 10);
-    const hash = auth.hashPassword(tempPassword);
+    const customPassword = (body.password || '').trim();
+    if (customPassword && customPassword.length < 8) {
+      return sendJson(res, 400, { error: 'Password must be at least 8 characters.' });
+    }
+    const finalPassword = customPassword || Math.random().toString(36).slice(2, 10);
+    const hash = auth.hashPassword(finalPassword);
     const token = crypto.randomBytes(16).toString('hex');
-    const result = db.prepare(`INSERT INTO users (name,email,password_hash,role,phone,title,status,verification_token) VALUES (?,?,?,?,?,?,'ACTIVE',?)`)
-      .run(name, email, hash, role, body.phone || '', body.title || body.role || '', token);
+    const isVerified = customPassword ? 1 : 0;
+    const result = db.prepare(`INSERT INTO users (name,email,password_hash,role,phone,title,status,email_verified,verification_token) VALUES (?,?,?,?,?,?,'ACTIVE',?,?)`)
+      .run(name, email, hash, role, body.phone || '', body.title || body.role || '', isVerified, token);
     
     const userRow = db.prepare('SELECT * FROM users WHERE id=?').get(result.lastInsertRowid);
     logActivity(user.id, `Added ${role.toLowerCase()} account: ${name}`);
     
-    // Send Teacher Welcome Setup Email
+    // Send Welcome Setup Email
     const proto = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
     const origin = req.headers.origin || `${proto}://${host}`;
@@ -236,10 +241,31 @@ module.exports = function register(router) {
     mailer.sendEmail({
       to: email,
       subject: `Welcome to PIMH Academy, ${name}`,
-      html: `<h1>Welcome to the Faculty!</h1><p>An administrator has created a <b>${role}</b> account for you.</p><p>Please click the link below to verify your email and set your private password:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`
+      html: `<h1>Welcome to PIMH Academy!</h1><p>An administrator has created a <b>${role}</b> account for you.</p><p>Please click the link below to verify your email and set your private password:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`
     }).catch(e => console.error(e));
 
-    sendJson(res, 200, { user: q.publicUser(userRow), message: 'Account created. Email invitation sent with setup link.' });
+    sendJson(res, 200, { user: q.publicUser(userRow), setupUrl: verifyUrl, message: 'Account created. Email invitation sent with setup link.' });
+  });
+
+  router.post('/api/users/:id/resend-invite', async (req, res) => {
+    const user = requireRole(req, res, ['SUPER_ADMIN', 'ADMIN']); if (!user) return;
+    const target = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+    if (!target) return sendJson(res, 404, { error: 'Not found' });
+    const token = target.verification_token || crypto.randomBytes(16).toString('hex');
+    if (!target.verification_token) {
+      db.prepare('UPDATE users SET verification_token = ? WHERE id = ?').run(token, target.id);
+    }
+    const proto = req.headers['x-forwarded-proto'] || 'http';
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
+    const origin = req.headers.origin || `${proto}://${host}`;
+    const verifyUrl = `${origin}/setup-account?token=${token}`;
+    await mailer.sendEmail({
+      to: target.email,
+      subject: `Welcome to PIMH Academy, ${target.name}`,
+      html: `<h1>Welcome to PIMH Academy!</h1><p>An administrator has created a <b>${target.role}</b> account for you.</p><p>Please click the link below to verify your email and set your private password:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`
+    });
+    logActivity(user.id, `Resent account setup invite to ${target.name} (${target.email})`);
+    sendJson(res, 200, { ok: true, setupUrl: verifyUrl });
   });
 
   router.put('/api/users/:id', async (req, res) => {
@@ -252,8 +278,17 @@ module.exports = function register(router) {
     const body = await readJson(req);
     const name = (body.name || target.name).trim();
     const email = (body.email || target.email).trim().toLowerCase();
-    db.prepare('UPDATE users SET name=?, email=?, phone=?, title=? WHERE id=?')
-      .run(name, email, body.phone != null ? body.phone : target.phone, body.title != null ? body.title : target.title, target.id);
+    const newRole = (user.role === 'SUPER_ADMIN' && body.role) ? body.role : target.role;
+    const customPassword = (body.password || '').trim();
+    if (customPassword) {
+      if (customPassword.length < 8) return sendJson(res, 400, { error: 'Password must be at least 8 characters.' });
+      const hash = auth.hashPassword(customPassword);
+      db.prepare('UPDATE users SET name=?, email=?, phone=?, title=?, role=?, password_hash=?, email_verified=1 WHERE id=?')
+        .run(name, email, body.phone != null ? body.phone : target.phone, body.title != null ? body.title : target.title, newRole, hash, target.id);
+    } else {
+      db.prepare('UPDATE users SET name=?, email=?, phone=?, title=?, role=? WHERE id=?')
+        .run(name, email, body.phone != null ? body.phone : target.phone, body.title != null ? body.title : target.title, newRole, target.id);
+    }
     logActivity(user.id, `Updated account: ${name}`);
     sendJson(res, 200, { ok: true });
   });

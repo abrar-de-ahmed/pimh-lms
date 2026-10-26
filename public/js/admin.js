@@ -66,7 +66,7 @@
           '<td>' + esc(t.email) + '<div class="cell-sub">' + esc(t.phone || '') + '</div></td>' +
           '<td>' + (t.courses.length ? esc(t.courses.join(', ')) : '<span class="cell-sub">Unassigned</span>') + '</td>' +
           '<td><span class="pill ' + (t.status === 'ACTIVE' ? 'pill-active' : 'pill-inactive') + '">' + t.status + '</span></td>' +
-          '<td style="white-space:nowrap; text-align:right;">' + (isSuper ? '<button class="btn-secondary btn-small" data-edit-user="' + t.id + '" data-role="FACULTY">Edit</button> <button class="btn-danger-text btn-small" data-del-user="' + t.id + '">&times; Delete</button> <button class="btn-danger-text" data-toggle-user="' + t.id + '">' + (t.status === 'ACTIVE' ? 'Deactivate' : 'Reactivate') + '</button>' : '') + '</td></tr>';
+          '<td style="white-space:nowrap; text-align:right;">' + (isSuper ? '<button class="btn-secondary btn-small" data-resend-user="' + t.id + '">📧 Resend Invite</button> <button class="btn-secondary btn-small" data-edit-user="' + t.id + '" data-role="FACULTY">Edit</button> <button class="btn-danger-text btn-small" data-del-user="' + t.id + '">&times; Delete</button> <button class="btn-danger-text" data-toggle-user="' + t.id + '">' + (t.status === 'ACTIVE' ? 'Deactivate' : 'Reactivate') + '</button>' : '') + '</td></tr>';
       });
       html += '</tbody></table></div></div></div>';
 
@@ -89,7 +89,7 @@
             '<td>' + esc(a.email) + '<div class="cell-sub">' + esc(a.phone || '') + '</div></td>' +
             '<td>' + (a.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin') + '</td>' +
             '<td><span class="pill ' + (a.status === 'ACTIVE' ? 'pill-active' : 'pill-inactive') + '">' + a.status + '</span></td>' +
-            '<td style="white-space:nowrap; text-align:right;"><button class="btn-secondary btn-small" data-edit-user="' + a.id + '" data-role="' + a.role + '">Edit</button> <button class="btn-danger-text btn-small" data-del-user="' + a.id + '">&times; Delete</button> <button class="btn-danger-text" data-toggle-user="' + a.id + '">' + (a.status === 'ACTIVE' ? 'Deactivate' : 'Reactivate') + '</button></td></tr>';
+            '<td style="white-space:nowrap; text-align:right;"><button class="btn-secondary btn-small" data-resend-user="' + a.id + '">📧 Resend Invite</button> <button class="btn-secondary btn-small" data-edit-user="' + a.id + '" data-role="' + a.role + '">Edit</button> <button class="btn-danger-text btn-small" data-del-user="' + a.id + '">&times; Delete</button> <button class="btn-danger-text" data-toggle-user="' + a.id + '">' + (a.status === 'ACTIVE' ? 'Deactivate' : 'Reactivate') + '</button></td></tr>';
         });
         html += '</tbody></table></div></div></div>';
       }
@@ -115,13 +115,14 @@
   function openUserModal(role, editing) {
     var roleLabel = role === 'FACULTY' ? 'teacher' : (role === 'STUDENT' ? 'student' : 'administrator');
     userOverlay.innerHTML = '<div class="modal wide"><h3>' + (editing ? 'Edit ' : 'Add ') + roleLabel + '</h3>' +
-      '<p class="modal-sub">' + (editing ? 'Update their account details.' : 'They will receive an email to complete setup.') + '</p>' +
+      '<p class="modal-sub">' + (editing ? 'Update their account details or set a new password.' : 'They will receive an email setup link, or you can set an initial password below.') + '</p>' +
       '<div class="settings-grid">' +
       '<div class="field"><label>Name</label><input type="text" id="uName" value="' + esc(editing ? editing.name : '') + '"></div>' +
       '<div class="field"><label>Email address</label><input type="email" id="uEmail" value="' + esc(editing ? editing.email : '') + '"></div>' +
       '<div class="field"><label>Phone number</label><input type="text" id="uPhone" value="' + esc(editing ? editing.phone || '' : '') + '"></div>' +
       (role === 'FACULTY' ? '<div class="field"><label>Job title</label><input type="text" id="uTitle" value="' + esc(editing ? editing.title || '' : '') + '"></div>' : '') +
       ((role === 'ADMIN' || role === 'SUPER_ADMIN') ? '<div class="field"><label>Administrator Role</label><select id="uRole"><option value="ADMIN"' + (role === 'ADMIN' ? ' selected' : '') + '>Admin</option><option value="SUPER_ADMIN"' + (role === 'SUPER_ADMIN' ? ' selected' : '') + '>Super Admin</option></select></div>' : '') +
+      '<div class="field"><label>' + (editing ? 'New Password (optional — min 8 chars)' : 'Initial Password (optional — min 8 chars)') + '</label><input type="text" id="uPassword" placeholder="' + (editing ? 'Leave blank to keep existing password' : 'Leave blank to email setup link only') + '"></div>' +
       '</div>' +
       '<div class="modal-error" id="uError">Please fill in a name and email.</div>' +
       '<div class="modal-actions" style="margin-top:24px; padding-top:16px; border-top:1px solid var(--line);"><button type="button" class="btn-secondary" id="uCancel">Cancel</button><button type="button" class="btn-primary" id="uSave">Save account</button></div></div>';
@@ -136,16 +137,34 @@
       var payload = { name: name, email: email, phone: document.getElementById('uPhone').value.trim(), role: finalRole };
       var titleEl = document.getElementById('uTitle');
       if (titleEl) payload.title = titleEl.value.trim();
+      var pwEl = document.getElementById('uPassword');
+      if (pwEl && pwEl.value.trim()) payload.password = pwEl.value.trim();
       var req = editing ? api('/api/users/' + editing.id, { method: 'PUT', body: payload }) : api('/api/users', { method: 'POST', body: payload });
       req.then(function (res) {
         userOverlay.classList.remove('show');
-        showToast(editing ? 'Updated.' : ('Account created' + (res.tempPassword ? ' — temp password: ' + res.tempPassword : '') + '.'));
+        showToast(editing ? 'Account updated.' : 'Account created & invitation email sent.');
         renderUsers();
       }).catch(function (e) { document.getElementById('uError').textContent = e.message; document.getElementById('uError').classList.add('show'); });
     });
   }
 
   document.body.addEventListener('click', function (e) {
+    var resendBtn = e.target.closest('[data-resend-user]');
+    if (resendBtn) {
+      var uid = resendBtn.getAttribute('data-resend-user');
+      resendBtn.disabled = true;
+      resendBtn.textContent = 'Sending...';
+      api('/api/users/' + uid + '/resend-invite', { method: 'POST' }).then(function () {
+        showToast('Invitation setup email sent!');
+        resendBtn.disabled = false;
+        resendBtn.textContent = '📧 Resend Invite';
+      }).catch(function (err) {
+        showToast(err.message, true);
+        resendBtn.disabled = false;
+        resendBtn.textContent = '📧 Resend Invite';
+      });
+      return;
+    }
     var editBtn = e.target.closest('[data-edit-user]');
     if (editBtn) {
       var id = editBtn.getAttribute('data-edit-user'); var role = editBtn.getAttribute('data-role');
